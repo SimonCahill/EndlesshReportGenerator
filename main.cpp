@@ -9,6 +9,7 @@
  */
 
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <string>
@@ -19,6 +20,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::function;
 using std::ifstream;
 using std::make_pair;
 using std::map;
@@ -27,19 +29,26 @@ using std::string;
 using std::vector;
 
 bool    g_error = false;
-bool    g_outputConnectionCount = true;
-bool    g_outputAliveConnections = true;
-bool    g_outputAliveConnectionCount = true;
-bool    g_outputUniqueIds = true;
-bool    g_outputUniqueIdCount = true;
+bool    g_printIpStatistics = true;
+bool    g_printConnectionStatistics = true;
+bool    g_readFromStdIn = false;
 string  g_logLocation = "/var/log/syslog";
 
 bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens);
 bool                                    regexMatch(const char* haystack, const char* needle);
+int32_t                                 parseArgs(const int32_t&, char**);
 map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&);
+string                                  getSpacerString(const uint32_t totalWidth, const uint32_t strLength);
+string                                  trimStart(string nonTrimmed, const string& trimChar);
+string                                  trimEnd(string nonTrimmed, const string& trimChar);
+string                                  trim(string nonTrimmed, const string& trimChar);
 vector<string>                          readEndlesshLog();
 
-int main() {
+int main(int32_t argC, char** argV) {
+    if (parseArgs(argC, argV) == 1) {
+        return 0;
+    }
+
     // Read log file
     const auto logContents = readEndlesshLog();
 
@@ -49,19 +58,61 @@ int main() {
     uint32_t totalAcceptedConnections = 0;
     uint32_t totalClosedConnections = 0;
 
-    cout << "|          Host          | Accepted | Closed |" << endl
-         << "|------------------------|----------|--------|" << endl;
-    for (const auto& connection : connectionList) {
-        const auto spacer = string(24 / 2 - connection.first.size() / 2, ' ');
-        totalAcceptedConnections += connection.second.first;
-        totalClosedConnections += connection.second.second;
-        cout << "|" << spacer << connection.first << spacer << "| " << connection.second.first << " | " << connection.second.second << " | " << endl;
-    }
-    cout << endl;
+    if (g_printIpStatistics) {
+        cout << "# Statistics per IP" << endl;
+        cout << "|          Host          | Accepted | Closed |" << endl
+            << "|------------------------|----------|--------|" << endl;
+        for (const auto& connection : connectionList) {
+            totalAcceptedConnections += connection.second.first;
+            totalClosedConnections += connection.second.second;
+            string lastSpacer;
 
-    cout << "**Total unique IPs found: " << connectionList.size() << "**" << endl
-         << "**Total accepted connections: " << totalAcceptedConnections << "**" << endl
-         << "**Total closed connections: " << totalClosedConnections << "**" << endl;
+            cout << "|" << (lastSpacer = getSpacerString(24, connection.first.size()))
+                << connection.first << string(24 - connection.first.size() - lastSpacer.size(), ' ') 
+                << "|";
+
+            auto strLength = std::to_string(connection.second.first).size();
+            cout << (lastSpacer = getSpacerString(10, strLength))
+                << connection.second.first << string(10 - strLength - lastSpacer.size(), ' ')
+                << "|";
+            
+            
+            strLength = std::to_string(connection.second.second).size();
+            cout << (lastSpacer = getSpacerString(8, strLength))
+                << connection.second.second << string(8 - strLength - lastSpacer.size(), ' ')
+                << "|" << endl;
+        }
+        cout << endl;
+    }
+
+    if (g_printConnectionStatistics) {
+        // Prepare everything for markdown table while keeping the table code clean-ish
+        // I'd rather this be ugly than the table tbh
+        string tmpInt = std::to_string(connectionList.size());
+        string tmp = getSpacerString(18, tmpInt.size());
+        string uniqueIps = tmp + tmpInt + string(18 - tmpInt.size() - tmp.size(), ' ');
+
+        string acceptedConns;
+        tmpInt = std::to_string(totalAcceptedConnections);
+        tmp = getSpacerString(28, tmpInt.size());
+        acceptedConns = tmp + tmpInt + string(28 - tmpInt.size() - tmp.size(), ' ');
+
+
+        string closedConns;
+        tmpInt = std::to_string(totalClosedConnections);
+        tmp = getSpacerString(26, tmpInt.size());
+        closedConns = tmp + tmpInt + string(26 - tmpInt.size() - tmp.size(), ' ');
+
+        string aliveConns;
+        tmpInt = std::to_string(totalAcceptedConnections - totalClosedConnections);
+        tmp = getSpacerString(25, tmpInt.size());
+        aliveConns = tmp + tmpInt + string(25 - tmpInt.size() - tmp.size(), ' ');
+
+        cout << "# Connection Statistics" << endl;
+        cout << "| Total Unique IPs | Total Accepted Connections | Total Closed Connections | Total Alive Connections |" << endl
+            << "|------------------|----------------------------|--------------------------|-------------------------|" << endl
+            << "|" <<uniqueIps << "|" << acceptedConns      << "|" << closedConns      << "|" << aliveConns      << "|" << endl;
+    }
 
     return 0;
 }
@@ -75,20 +126,28 @@ vector<string> readEndlesshLog() {
     const static string ENDLESSH = "endlessh";
 
     vector<string> output;
-    ifstream fileStream(g_logLocation);
 
-    if (!fileStream.good()) {
-        cerr << "Failed to open " + g_logLocation + "." << endl;
-        g_error = true;
-        return output;
-    }
-
-    string line;
-
-    while (std::getline(fileStream, line)) {
-        if (line.find(ENDLESSH) != string::npos) {
-            output.push_back(line);
+    auto _ = [](std::istream& stream, vector<string>& output) {
+        string line;
+        while (std::getline(stream, line)) {
+            if (line.find(ENDLESSH) != string::npos) {
+                output.push_back(line);
+            }
         }
+    };
+
+    if (!g_readFromStdIn) {
+        ifstream fileStream(g_logLocation);
+
+        if (!fileStream.good()) {
+            cerr << "Failed to open " + g_logLocation + "." << endl;
+            g_error = true;
+            return output;
+        }
+
+        _(fileStream, output);
+    } else {
+        _(std::cin, output);
     }
 
     return output;
@@ -109,7 +168,7 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
 
         for (const auto token : tokens) {
             if (regexMatch(token.c_str(), R"(host=[^\s])")) {
-                hostToken = token.substr(token.find('='));
+                hostToken = token.substr(token.find('=') + 1);
             } else if (token == "ACCEPT") {
                 isAccept = true;
             }
@@ -184,4 +243,87 @@ bool regexMatch(const char* haystack, const char* needle) {
     }
 
     return true;
+}
+
+string getSpacerString(const uint32_t totalWidth, const uint32_t strLength) {
+    return string(totalWidth / 2 - strLength / 2, ' ');
+}
+
+/**
+ * @brief Trims the beginning of a given string.
+ *
+ * @param nonTrimmed The non-trimmed string.
+ * @param trimChar The character to trim off the string. (default: space)
+ *
+ * @return The trimmed string.
+ */
+string trimStart(string nonTrimmed, const string& trimChar) {
+    //nonTrimmed.erase(nonTrimmed.begin(), find_if(nonTrimmed.begin(), nonTrimmed.end(), not1(ptr_fun<int32_t, int32_t>(isspace))));
+
+    function<bool(char)> shouldTrimChar = [=](char c) -> bool { return trimChar.size() == 0 ? isspace(c) : trimChar.find(c) != string::npos; };
+
+    nonTrimmed.erase(nonTrimmed.begin(), find_if(nonTrimmed.begin(), nonTrimmed.end(), not1(shouldTrimChar)));
+
+    return nonTrimmed;
+}
+
+/**
+ * @brief Trims the end of a given string.
+ * @param nonTrimmed The non-trimmed string.
+ * @param trimChar The character to trim off the string. (default: space)
+ *
+ * @return The trimmed string.
+ */
+string trimEnd(string nonTrimmed, const string& trimChar) {
+    // nonTrimmed.erase(find_if(nonTrimmed.rbegin(), nonTrimmed.rend(), not1(ptr_fun<int32_t, int32_t>(isspace))).base(), nonTrimmed.end());
+
+    function<bool(char)> shouldTrimChar = [=](char c) -> bool { return trimChar.size() == 0 ? isspace(c) : trimChar.find(c) != string::npos; };
+    nonTrimmed.erase(find_if(nonTrimmed.rbegin(), nonTrimmed.rend(), not1(shouldTrimChar)).base(), nonTrimmed.end());
+
+    return nonTrimmed;
+}
+
+/**
+ * @brief Trims both the beginning and the end of a given string.
+ *
+ * @param nonTrimmed The non-trimmed string.
+ * @param trimChar The character to trim off the string. (default: space)
+ *
+ * @return The trimmed string.
+ */
+string trim(string nonTrimmed, const string& trimChar) { return trimStart(trimEnd(nonTrimmed, trimChar), trimChar); }
+
+int32_t parseArgs(const int32_t& argC, char** argV) {
+    for (int32_t i = 1; i < argC; i++) {
+        string arg = argV[i];
+
+        if (arg == "-h" || arg == "--help") {
+            cout << "Usage: " << argV[0] << endl
+                 << "Usage: " << argV[0] << " [options]" << endl
+                 << "Usage: cat file | " << argV[0] << "--stdin" << endl << endl
+
+                 << "Switches:" << endl
+                 << "\t--no-ip-stats, -i\tDon't print IP statistics" << endl
+                 << "\t--no-cn-stats, -c\tDon't print connection statistics" << endl
+                 << "\t--stdin \t\tRead logs from stdin" << endl
+                 << "Arguments:" << endl
+                 << "\t--syslog </path/to>\tOverride default syslog path (" << g_logLocation << ")" << endl;
+
+            return 1;
+        } else if (arg == "--no-ip-stats" || arg == "-i") {
+            g_printIpStatistics = false;
+        } else if (arg == "--no-cn-stats" || arg == "-c") {
+            g_printConnectionStatistics = false;
+        } else if (arg == "--syslog") {
+            ++i;
+            g_logLocation = argV[i];
+        } else if (arg == "--stdin") {
+            g_readFromStdIn = true;
+        } else {
+            cerr << "Unknown argument " << arg << endl;
+            continue; // redundant as of now
+        }
+    }
+
+    return 0;
 }
