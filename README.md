@@ -17,6 +17,21 @@ After building, simply call:
 ./unique_ids
 ```
 
+## Arguments
+
+```
+Usage: ./unique_ids
+Usage: ./unique_ids [options]
+Usage: cat file | ./unique_ids--stdin
+
+Switches:
+        --no-ip-stats, -i       Don't print IP statistics
+        --no-cn-stats, -c       Don't print connection statistics
+        --stdin                 Read logs from stdin
+Arguments:
+        --syslog </path/to>     Override default syslog path (/var/log/syslog)
+```
+
 ## Output
 This program outputs its text in Markdown-compatible form.
 Because I wrote this program for my own use on my servers, I developed it for use with my report scripts that send me periodic emails.
