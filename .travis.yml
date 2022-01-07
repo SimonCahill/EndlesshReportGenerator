@@ -1,0 +1,4 @@
+language: c++
+compiler:
+  - g++
+script: g++ -std=c++17 -o unique_ids main.cpp
