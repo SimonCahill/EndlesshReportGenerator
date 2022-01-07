@@ -59,7 +59,7 @@ int main() {
     }
     cout << endl;
 
-    cout << "**Total unique IDs found: " << connectionList.size() << "**" << endl
+    cout << "**Total unique IPs found: " << connectionList.size() << "**" << endl
          << "**Total accepted connections: " << totalAcceptedConnections << "**" << endl
          << "**Total closed connections: " << totalClosedConnections << "**" << endl;
 
