@@ -28,21 +28,21 @@ using std::pair;
 using std::string;
 using std::vector;
 
-bool    g_error = false;
-bool    g_printIpStatistics = true;
-bool    g_printConnectionStatistics = true;
-bool    g_readFromStdIn = false;
-string  g_logLocation = "/var/log/syslog";
+bool    g_error = false; //!< Whether or not a fatal error occurred
+bool    g_printIpStatistics = true; //!< Whether or not to print IP stats (default: true)
+bool    g_printConnectionStatistics = true; //!< Whether or not to print connection stats (default: true)
+bool    g_readFromStdIn = false; //!< Whether or not to read from stdin (default: false)
+string  g_logLocation = "/var/log/syslog"; //!< Default endlessh log location (default: /var/log/syslog)
 
-bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens);
-bool                                    regexMatch(const char* haystack, const char* needle);
-int32_t                                 parseArgs(const int32_t&, char**);
-map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&);
-string                                  getSpacerString(const uint32_t totalWidth, const uint32_t strLength);
-string                                  trimStart(string nonTrimmed, const string& trimChar);
-string                                  trimEnd(string nonTrimmed, const string& trimChar);
-string                                  trim(string nonTrimmed, const string& trimChar);
-vector<string>                          readEndlesshLog();
+bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens); //!< Splits a string by one or more delimiters
+bool                                    regexMatch(const char* haystack, const char* needle); //!< Matches a string against a regular expression
+int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
+map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
+string                                  getSpacerString(const uint32_t totalWidth, const uint32_t strLength); //!< Gets the spacer string (might be removed)
+string                                  trimStart(string nonTrimmed, const string& trimChar); //!< Trims the start of a string
+string                                  trimEnd(string nonTrimmed, const string& trimChar); //!< Trims the end of a string
+string                                  trim(string nonTrimmed, const string& trimChar); //!< Trims a string
+vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
 
 int main(int32_t argC, char** argV) {
     if (parseArgs(argC, argV) == 1) {
@@ -227,6 +227,15 @@ bool splitString(const string& str, const string& delimiters, vector<string> &to
     return tokens.size() > 0;
 }
 
+/**
+ * @brief Matches a string against a regular expression.
+ * 
+ * @param haystack The string to compare
+ * @param needle The expression to compare against
+ * 
+ * @return true If the string matches the expression
+ * @return false Otherwise
+ */
 bool regexMatch(const char* haystack, const char* needle) {
     int nRet;
     regex_t sRegEx;
@@ -245,6 +254,14 @@ bool regexMatch(const char* haystack, const char* needle) {
     return true;
 }
 
+/**
+ * @brief Gets a string containing whitespace to centre text
+ * 
+ * @param totalWidth The total width of the area where the string should be centred
+ * @param strLength The length of the string to be centre-printed
+ * 
+ * @return string The spacer string
+ */
 string getSpacerString(const uint32_t totalWidth, const uint32_t strLength) {
     return string(totalWidth / 2 - strLength / 2, ' ');
 }
@@ -293,6 +310,14 @@ string trimEnd(string nonTrimmed, const string& trimChar) {
  */
 string trim(string nonTrimmed, const string& trimChar) { return trimStart(trimEnd(nonTrimmed, trimChar), trimChar); }
 
+/**
+ * @brief Parses arguments passed to the application and sets values accordingly.
+ * 
+ * @param argC The total amount of args
+ * @param argV A pointer-pointer to the passed args
+ * 
+ * @return int32_t 1 if the application should terminate. 0 otherwise
+ */
 int32_t parseArgs(const int32_t& argC, char** argV) {
     for (int32_t i = 1; i < argC; i++) {
         string arg = argV[i];
@@ -306,6 +331,7 @@ int32_t parseArgs(const int32_t& argC, char** argV) {
                  << "\t--no-ip-stats, -i\tDon't print IP statistics" << endl
                  << "\t--no-cn-stats, -c\tDon't print connection statistics" << endl
                  << "\t--stdin \t\tRead logs from stdin" << endl
+                 << "\t--help, -h\t\tPrints this message and exits"
                  << "Arguments:" << endl
                  << "\t--syslog </path/to>\tOverride default syslog path (" << g_logLocation << ")" << endl;
 
