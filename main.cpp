@@ -62,11 +62,14 @@ int main(int32_t argC, char** argV) {
         cout << "# Statistics per IP" << endl;
         cout << "|          Host          | Accepted | Closed |" << endl
             << "|------------------------|----------|--------|" << endl;
-        for (const auto& connection : connectionList) {
-            totalAcceptedConnections += connection.second.first;
-            totalClosedConnections += connection.second.second;
-            string lastSpacer;
+    }
 
+    for (const auto& connection : connectionList) {
+        totalAcceptedConnections += connection.second.first;
+        totalClosedConnections += connection.second.second;
+
+        if (g_printIpStatistics) {
+            string lastSpacer;
             cout << "|" << (lastSpacer = getSpacerString(24, connection.first.size()))
                 << connection.first << string(24 - connection.first.size() - lastSpacer.size(), ' ') 
                 << "|";
@@ -82,8 +85,8 @@ int main(int32_t argC, char** argV) {
                 << connection.second.second << string(8 - strLength - lastSpacer.size(), ' ')
                 << "|" << endl;
         }
-        cout << endl;
     }
+    if (g_printIpStatistics) { cout << endl; }
 
     if (g_printConnectionStatistics) {
         // Prepare everything for markdown table while keeping the table code clean-ish
