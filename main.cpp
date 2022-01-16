@@ -107,7 +107,11 @@ int main(int32_t argC, char** argV) {
         closedConns = tmp + tmpInt + string(26 - tmpInt.size() - tmp.size(), ' ');
 
         string aliveConns;
-        tmpInt = std::to_string(totalAcceptedConnections - totalClosedConnections);
+        if (totalAcceptedConnections >= totalClosedConnections) {
+            tmpInt = std::to_string(totalAcceptedConnections - totalClosedConnections);
+        } else {
+            tmpInt = std::to_string(totalClosedConnections - totalAcceptedConnections);
+        }
         tmp = getSpacerString(25, tmpInt.size());
         aliveConns = tmp + tmpInt + string(25 - tmpInt.size() - tmp.size(), ' ');
 
