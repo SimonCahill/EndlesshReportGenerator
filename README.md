@@ -6,7 +6,18 @@ As a one-file project, I didn't see the need to create a Makefile. <br >
 This will only work on Linux systems.
 
 ```bash
-g++ -std=c++17 -o unique_ids main.cpp
+g++ -std=c++17 -o endlessh-report main.cpp
+```
+
+# Installing
+After building the software, either move or copy it to /usr/local/bin, or add the build path to your local $PATH environment variable.
+
+```bash
+sudo cp endlessh-report /usr/local/bin/endlessh-report # copy to global path
+sudo mv endlessh-report /usr/local/bin/endlessh-report # move to global path
+
+# in ~/.bashrc:
+export PATH="/path/to/repo:$PATH"
 ```
 
 # Usage
@@ -14,20 +25,23 @@ g++ -std=c++17 -o unique_ids main.cpp
 After building, simply call:
 
 ```bash
-./unique_ids
+./endlessh-report
 ```
 
 ## Arguments
 
 ```
-Usage: ./unique_ids
-Usage: ./unique_ids [options]
-Usage: cat file | ./unique_ids--stdin
+Usage: ./endlessh-report
+Usage: ./endlessh-report [options]
+Usage: cat file | ./endlessh-report--stdin
 
 Switches:
         --no-ip-stats, -i       Don't print IP statistics
         --no-cn-stats, -c       Don't print connection statistics
         --stdin                 Read logs from stdin
+        --abuse-ipdb, -a        Enable AbuseIPDB-compatible CSV output
+        --no-ad, -n             No advertising please!
+        --help, -h              Prints this message and exits
 Arguments:
         --syslog </path/to>     Override default syslog path (/var/log/syslog)
 ```
@@ -40,11 +54,11 @@ Because I wrote this program for my own use on my servers, I developed it for us
 
 ```bash
 # requires pandoc
-./unique_ids | pandoc -f markdown -t html | mail -a "Content-Type: text/html; charset=UTF-8" -s "My Endlessh Report" "you@yourdomain.com"
+./endlessh-report | pandoc -f markdown -t html | mail -a "Content-Type: text/html; charset=UTF-8" -s "My Endlessh Report" "you@yourdomain.com"
 ```
 
 # Sample Output
-`unique_ids -i` generates the following output:
+`endlessh-report -i` generates the following output:
 
 ```markdown
 # Connection Statistics
@@ -60,7 +74,7 @@ Resulting in:
 |------------------|----------------------------|--------------------------|-------------------------|
 |        178       |              0             |             0            |            0            |
 
-`unique_ids -c` generates the following output:
+`endlessh-report -c` generates the following output:
 (truncated for readability)
 
 > **Note that these are all botnet-IPs and are already publicly listed as such.**
