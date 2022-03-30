@@ -63,8 +63,8 @@ jobs:
     #    uses a compiled language
 
     - run: |
-       git submodule update --init --recursive
-       g++ -std=c++17 -o endlessh-report main.cpp
+       - git submodule update --init --recursive
+       - g++ -std=c++17 -o endlessh-report main.cpp
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
