@@ -46,10 +46,31 @@ bool    g_printAbuseIpDbCsv = false; //!< Whether or not to output AbuseIPDB-com
 bool    g_printIpStatistics = true; //!< Whether or not to print IP stats (default: true)
 bool    g_printConnectionStatistics = true; //!< Whether or not to print connection stats (default: true)
 bool    g_readFromStdIn = false; //!< Whether or not to read from stdin (default: false)
+bool    g_useDetailedInfo = false; //!< Whether or not reports should be detailed (default: false)
 string  g_logLocation = "/var/log/syslog"; //!< Default endlessh log location (default: /var/log/syslog)
+
+/**
+ * @brief Contains information about a given connection.
+ */
+struct ConnectionDetails {
+    size_t              acceptedConnections;
+    size_t              closedConnections;
+
+    vector<uint16_t>    usedPorts;
+
+    double              totalSecondsWasted;
+
+    size_t              totalBytesSent;
+
+    string              host;
+
+    ConnectionDetails(): acceptedConnections(0), closedConnections(0),
+    usedPorts({}), totalSecondsWasted(0), totalBytesSent(0), host({}) {}
+};
 
 bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens); //!< Splits a string by one or more delimiters
 bool                                    regexMatch(const char* haystack, const char* needle); //!< Matches a string against a regular expression
+double  	                            roundNumber(const double x, const uint32_t decimalPlaces); //!<
 int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
 map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
 string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
@@ -57,7 +78,12 @@ string                                  getSpacerString(const uint32_t totalWidt
 string                                  trimStart(string nonTrimmed, const string& trimChar); //!< Trims the start of a string
 string                                  trimEnd(string nonTrimmed, const string& trimChar); //!< Trims the end of a string
 string                                  trim(string nonTrimmed, const string& trimChar); //!< Trims a string
+vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
 vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
+void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
+void                                    printIpStatsTableHeader(); //!< Prints the markdown header for the statistics table
+void                                    printIpStats(const map<string, pair<uint32_t, uint32_t>>, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints the IP stats
+void                                    printDetailedIpStats(const vector<ConnectionDetails>, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
 
 int main(int32_t argC, char** argV) {
     if (parseArgs(argC, argV) == 1) {
@@ -76,7 +102,15 @@ int main(int32_t argC, char** argV) {
 
     if (g_error) { return 1; }
 
-    const auto connectionList = getConnections(logContents);
+    map<string, pair<uint32_t, uint32_t>> normalConnList;
+    vector<ConnectionDetails> detailedConnList;
+
+    if (!g_useDetailedInfo) {
+        normalConnList = getConnections(logContents);
+    } else {
+        detailedConnList = getDetailledConnections(logContents);
+    }
+
     uint32_t totalAcceptedConnections = 0;
     uint32_t totalClosedConnections = 0;
 
@@ -85,66 +119,28 @@ int main(int32_t argC, char** argV) {
     }
 
     if (g_printIpStatistics) {
-        cout << "# Statistics per IP" << endl;
-        cout << "|          Host          | Accepted | Closed |" << endl
-             << "|------------------------|----------|--------|" << endl;
-    }
-
-    for (const auto& connection : connectionList) {
-        totalAcceptedConnections += connection.second.first;
-        totalClosedConnections += connection.second.second;
-
-        if (g_printIpStatistics) {
-            string lastSpacer;
-            cout << "|" << (lastSpacer = getSpacerString(24, connection.first.size()))
-                << connection.first << string(24 - connection.first.size() - lastSpacer.size(), ' ') 
-                << "|";
-
-            auto strLength = std::to_string(connection.second.first).size();
-            cout << (lastSpacer = getSpacerString(10, strLength))
-                << connection.second.first << string(10 - strLength - lastSpacer.size(), ' ')
-                << "|";
-            
-            
-            strLength = std::to_string(connection.second.second).size();
-            cout << (lastSpacer = getSpacerString(8, strLength))
-                << connection.second.second << string(8 - strLength - lastSpacer.size(), ' ')
-                << "|" << endl;
+        printIpStatsTableHeader();
+        if (!g_useDetailedInfo) {
+            printIpStats(normalConnList, totalAcceptedConnections, totalClosedConnections);
+        } else {
+            printDetailedIpStats(detailedConnList, totalAcceptedConnections, totalClosedConnections);
         }
+        cout << endl;
     }
-    if (g_printIpStatistics) { cout << endl; }
 
     if (g_printConnectionStatistics) {
-        // Prepare everything for markdown table while keeping the table code clean-ish
-        // I'd rather this be ugly than the table tbh
-        string tmpInt = std::to_string(connectionList.size());
-        string tmp = getSpacerString(18, tmpInt.size());
-        string uniqueIps = tmp + tmpInt + string(18 - tmpInt.size() - tmp.size(), ' ');
-
-        string acceptedConns;
-        tmpInt = std::to_string(totalAcceptedConnections);
-        tmp = getSpacerString(28, tmpInt.size());
-        acceptedConns = tmp + tmpInt + string(28 - tmpInt.size() - tmp.size(), ' ');
-
-
-        string closedConns;
-        tmpInt = std::to_string(totalClosedConnections);
-        tmp = getSpacerString(26, tmpInt.size());
-        closedConns = tmp + tmpInt + string(26 - tmpInt.size() - tmp.size(), ' ');
-
-        string aliveConns;
-        if (totalAcceptedConnections >= totalClosedConnections) {
-            tmpInt = std::to_string(totalAcceptedConnections - totalClosedConnections);
+        if (!g_useDetailedInfo) {
+            printConnectionStatistics(normalConnList.size(), totalAcceptedConnections, totalClosedConnections, 0, 0);
         } else {
-            tmpInt = std::to_string(totalClosedConnections - totalAcceptedConnections);
-        }
-        tmp = getSpacerString(25, tmpInt.size());
-        aliveConns = tmp + tmpInt + string(25 - tmpInt.size() - tmp.size(), ' ');
+            double totalSeconds = 0;
+            size_t totalBytes = 0;
+            std::for_each(detailedConnList.begin(), detailedConnList.end(), [&](const ConnectionDetails& x) {
+                totalBytes += x.totalBytesSent;
+                totalSeconds += x.totalSecondsWasted;
+            });
 
-        cout << "# Connection Statistics" << endl;
-        cout << "| Total Unique IPs | Total Accepted Connections | Total Closed Connections | Total Alive Connections |" << endl
-            << "|------------------|----------------------------|--------------------------|-------------------------|" << endl
-            << "|" <<uniqueIps << "|" << acceptedConns      << "|" << closedConns      << "|" << aliveConns      << "|" << endl;
+            printConnectionStatistics(detailedConnList.size(), totalAcceptedConnections, totalClosedConnections, totalSeconds, totalBytes);
+        }
     }
 
     if (g_printAbuseIpDbCsv) {
@@ -155,23 +151,44 @@ int main(int32_t argC, char** argV) {
 
         cout << "IP,Categories,ReportDate,Comment" << endl;
 
-        for (const auto& entry : connectionList) {
-            // strip ::ffff: from IP address
-            auto ip = entry.first;
-            auto offset = ip.find("::ffff:");
-            if (offset != string::npos) {
-                ip = ip.substr(offset + 7);
-            }
+        if (g_useDetailedInfo) {
+            for (const auto& entry : detailedConnList) {
+                auto ip = entry.host;
+                const auto offset = ip.find("::ffff:");
+                if (offset != string::npos) {
+                    ip = ip.substr(offset + 7);
+                }
 
-            cout << ip << ","
-                 << '"' << categories << '"' << ","
-                 << timestamp << ","
-                //  << std::format(message, entry.first, entry.second.first, entry.second.second) << endl;
-                << '"' << ip << " fell into Endlessh tarpit; "
-                << entry.second.first << " total, " << entry.second.second << " closed connections. "
-                << (g_disableAdvertisement ? "" : "(Report generated by Endlessh Report Generator)")
-                << '"'
-                << endl;
+                cout << ip << ","
+                     << '"' << categories << '"' << ","
+                     << timestamp << ","
+                     << '"'
+                        << ip << " fell into Endlessh tarpit; "
+                        << "opened " << entry.acceptedConnections << ", closed " << entry.closedConnections << " connections. "
+                        << "Total time wasted: " << entry.totalSecondsWasted << "s. "
+                        << "Total bytes sent by tarpit: " << entry.totalBytesSent << "B "
+                        << (g_disableAdvertisement ? "" : "(Report generated by Endlessh Report Generator)")
+                     << '"' << endl;
+            }
+        } else {
+            for (const auto& entry : normalConnList) {
+                // strip ::ffff: from IP address
+                auto ip = entry.first;
+                auto offset = ip.find("::ffff:");
+                if (offset != string::npos) {
+                    ip = ip.substr(offset + 7);
+                }
+
+                cout << ip << ","
+                     << '"' << categories << '"' << ","
+                     << timestamp << ","
+                //   << std::format(message, entry.first, entry.second.first, entry.second.second) << endl;
+                     << '"' << ip << " fell into Endlessh tarpit; "
+                     << entry.second.first << " total, " << entry.second.second << " closed connections. "
+                     << (g_disableAdvertisement ? "" : "(Report generated by Endlessh Report Generator)")
+                     << '"'
+                     << endl;
+            }
         }
     }
 
@@ -260,6 +277,235 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
     return connections;
 }
 
+vector<ConnectionDetails> getDetailledConnections(const vector<string>& logContents) {
+    vector<ConnectionDetails> returnVal{};
+
+    for (const auto& line : logContents) {
+        vector<string> tokens;
+        if (!splitString(line, " ", tokens)) {
+            cerr << "Failed to parse " << line << "." << endl;
+            continue;
+        }
+
+        bool isAccept = false;
+        string hostToken;
+        string portToken;
+        string timeToken;
+        string bytesToken;
+
+        for (const auto token : tokens) {
+            if (regexMatch(token.c_str(), R"(host=[^\s])")) {
+                hostToken = token.substr(token.find('=') + 1);
+            } else if (token == "ACCEPT") {
+                isAccept = true;
+            } else if (regexMatch(token.c_str(), R"(port=[^\s])") && token.find('=') != string::npos) {
+                portToken = token.substr(token.find('=') + 1);
+            } else if (regexMatch(token.c_str(), R"(time=[^\s])") && token.find('=') != string::npos) {
+                timeToken = token.substr(token.find('=') + 1);
+            } else if (regexMatch(token.c_str(), R"(bytes=[^\s])") && token.find('=') != string::npos) {
+                bytesToken = token.substr(token.find('=') + 1);
+            }
+        }
+
+        if (hostToken.empty()) {
+            // cerr << "Failed to find host= token!" << endl;
+            // cerr << "\tLine: " << line << endl;
+            continue;
+        }
+
+        auto element = std::find_if(returnVal.begin(), returnVal.end(), [&](const ConnectionDetails x) {
+            return x.host == hostToken;
+        });
+
+        if (element == returnVal.end()) {
+            ConnectionDetails x;
+            x.host = hostToken;
+            element = returnVal.emplace(returnVal.cend(), std::move(x));
+        }
+
+        if (isAccept) {
+            element->acceptedConnections++;
+            element->usedPorts.push_back(static_cast<uint16_t>(std::stoul(portToken)));
+            continue;
+        }
+
+        element->closedConnections++;
+        element->totalBytesSent += static_cast<size_t>(std::stoull(bytesToken));
+        element->totalSecondsWasted += std::stold(timeToken);
+    }
+
+    return returnVal;
+}
+
+/**
+ * @brief Print basic connection statistics
+ * 
+ * @param uniqueAddresses The total amount of unique IPs stuck in the tarpit
+ * @param totalAccepted The total amount of accepted connections
+ * @param totalClosed The total amount of closed connections
+ * @param totalTimeWasted The total amount of time (in seconds) wasted
+ * @param totalBytesSent The total amount of bytes sent to bots
+ */
+void printConnectionStatistics(const uint32_t uniqueAddresses, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent) {
+    // Prepare everything for markdown table while keeping the table code clean-ish
+    // I'd rather this be ugly than the table tbh
+    string tmpInt = std::to_string(uniqueAddresses);
+    string tmp = getSpacerString(18, tmpInt.size());
+    string uniqueIps = tmp + tmpInt + string(18 - tmpInt.size() - tmp.size(), ' ');
+
+    string acceptedConns;
+    tmpInt = std::to_string(totalAccepted);
+    tmp = getSpacerString(28, tmpInt.size());
+    acceptedConns = tmp + tmpInt + string(28 - tmpInt.size() - tmp.size(), ' ');
+
+
+    string closedConns;
+    tmpInt = std::to_string(totalClosed);
+    tmp = getSpacerString(26, tmpInt.size());
+    closedConns = tmp + tmpInt + string(26 - tmpInt.size() - tmp.size(), ' ');
+
+    string aliveConns;
+    if (totalAccepted >= totalClosed) {
+        tmpInt = std::to_string(totalAccepted - totalClosed);
+    } else {
+        tmpInt = std::to_string(totalClosed - totalAccepted);
+    }
+    tmp = getSpacerString(25, tmpInt.size());
+    aliveConns = tmp + tmpInt + string(25 - tmpInt.size() - tmp.size(), ' ');
+
+    cout << "# Connection Statistics" << endl;
+    cout << "| Total Unique IPs | Total Accepted Connections | Total Closed Connections | Total Alive Connections |";
+
+    if (totalTimeWasted > 0) {
+        cout << " Total Bot Time Wasted |";
+    } if (totalBytesSent > 0) {
+        cout << " Total Bytes Sent |";
+    }
+    cout << endl;
+
+    cout << "|------------------|----------------------------|--------------------------|-------------------------|";
+
+    if (totalTimeWasted > 0) {
+        cout << "-----------------------|";
+    } if (totalBytesSent > 0) {
+        cout << "------------------|";
+    }
+    cout << endl;
+
+    cout << "|" << uniqueIps << "|" << acceptedConns << "|" << closedConns << "|" << aliveConns << "|";
+    
+    if (totalTimeWasted > 0) {
+        cout << totalTimeWasted << "|";
+    } if (totalBytesSent > 0) {
+        cout << totalBytesSent << "|";
+    }
+
+    cout << endl;
+}
+
+/**
+ * @brief Print the markdown header for the IP statistics table.
+ */
+void printIpStatsTableHeader() {
+    if (!g_useDetailedInfo) {
+        cout << "# Statistics per IP" << endl;
+        cout << "|          Host          | Accepted | Closed |" << endl
+             << "|------------------------|----------|--------|" << endl;
+    } else {
+        cout << "# Statistics per IP" << endl;
+        cout << "|          Host          | Accepted | Closed | Total Time (s) | Total Bytes |" << endl
+             << "|------------------------|----------|--------|----------------|-------------|" << endl;
+    }
+}
+
+/**
+ * @brief Prints the basic IP statistics table in markdown-format
+ * 
+ * @param connectionList The connection list
+ * @param totalAcceptedConnections A reference to an unsigned int which will contain the total number of accepted connections.
+ * @param totalClosedConnections A reference to an unsigned int which will contain the total number of closed connections.
+ */
+void printIpStats(const map<string, pair<uint32_t, uint32_t>> connectionList, uint32_t& totalAcceptedConnections, uint32_t& totalClosedConnections) {
+    for (const auto& connection : connectionList) {
+        totalAcceptedConnections += connection.second.first;
+        totalClosedConnections += connection.second.second;
+
+        if (g_printIpStatistics) {
+            string lastSpacer;
+            cout << "|" << (lastSpacer = getSpacerString(24, connection.first.size()))
+                << connection.first << string(24 - connection.first.size() - lastSpacer.size(), ' ') 
+                << "|";
+
+            auto strLength = std::to_string(connection.second.first).size();
+            cout << (lastSpacer = getSpacerString(10, strLength))
+                << connection.second.first << string(10 - strLength - lastSpacer.size(), ' ')
+                << "|";
+            
+            
+            strLength = std::to_string(connection.second.second).size();
+            cout << (lastSpacer = getSpacerString(8, strLength))
+                << connection.second.second << string(8 - strLength - lastSpacer.size(), ' ')
+                << "|" << endl;
+        }
+    }
+}
+
+/**
+ * @brief Prints a markdown-compatible table containing detailed information, such as the total time of the bot wasted and the bytes sent.
+ * 
+ * @param connectionList The list of connections.
+ * @param totalAccepted The total accepted connections.
+ * @param totalClosed The total closed connections.
+ */
+void printDetailedIpStats(const vector<ConnectionDetails> connectionList, uint32_t& totalAccepted, uint32_t& totalClosed) {
+    for (const auto& connection : connectionList) {
+        totalAccepted += connection.acceptedConnections;
+        totalClosed += connection.closedConnections;
+        cout.precision(2);
+        string tmpString{};
+
+        string lastSpacer;
+        const auto offset = connection.host.find("::ffff:");
+        if (offset != string::npos) {
+            tmpString = connection.host.substr(offset + 7);
+        }
+        cout << "|" << (lastSpacer = getSpacerString(24, tmpString.size()))
+             << tmpString << string(24 - tmpString.size() - lastSpacer.size(), ' ') 
+             << "|";
+
+        auto strLength = std::to_string(connection.acceptedConnections).size();
+        cout << (lastSpacer = getSpacerString(10, strLength))
+             << connection.acceptedConnections << string(10 - strLength - lastSpacer.size(), ' ')
+             << "|";
+        
+        
+        strLength = std::to_string(connection.closedConnections).size();
+        cout << (lastSpacer = getSpacerString(8, strLength))
+             << connection.closedConnections << string(8 - strLength - lastSpacer.size(), ' ')
+             << "|";
+
+        const auto flooredSeconds = roundNumber(connection.totalSecondsWasted, 2);
+        strLength = (tmpString = std::to_string(flooredSeconds)).size();
+        cout << (lastSpacer = getSpacerString(16, strLength))
+             << tmpString
+             << string(16 - strLength - lastSpacer.size(), ' ')
+             << "|";
+
+        
+        if (connection.totalBytesSent > 1024) {
+            tmpString = std::to_string(connection.totalBytesSent / 1024) + "KiB";
+        } else {
+            tmpString = std::to_string(connection.totalBytesSent);
+        }
+        strLength = tmpString.size();
+        cout << (lastSpacer = getSpacerString(13, strLength))
+             << (connection.totalBytesSent > 1024 ? std::to_string(connection.totalBytesSent / 1024) + "KiB" : std::to_string(connection.totalBytesSent)) << string(13 - strLength - lastSpacer.size(), ' ')
+             << "|";
+
+        cout << endl;
+    }
+}
+
 /**
  * @brief Splits a given string by the passed delimiters in to a vector.
  *
@@ -313,6 +559,19 @@ bool regexMatch(const char* haystack, const char* needle) {
     }
 
     return true;
+}
+
+/**
+ * @brief Rounds a given double to the desired amount of decimal places.
+ * 
+ * @param x The double to round
+ * @param decimalPlaces The decimal places the double should be rounded to
+ * 
+ * @return double The resulting double.
+ */
+double roundNumber(const double x, const uint32_t decimalPlaces) {
+    const double multiplificationFaktor = std::pow(10.0, decimalPlaces);
+    return std::ceil(x * multiplificationFaktor) / multiplificationFaktor;
 }
 
 /**
@@ -404,6 +663,7 @@ int32_t parseArgs(const int32_t& argC, char** argV) {
                  << "\t--stdin \t\tRead logs from stdin" << endl
                  << "\t--abuse-ipdb, -a\tEnable AbuseIPDB-compatible CSV output" << endl
                  << "\t--no-ad, -n\t\tNo advertising please!" << endl
+                 << "\t--detailed, -d\t\tProvide detailed information." << endl
                  << "\t--help, -h\t\tPrints this message and exits" << endl
                  << "Arguments:" << endl
                  << "\t--syslog </path/to>\tOverride default syslog path (" << g_logLocation << ")" << endl;
@@ -422,6 +682,8 @@ int32_t parseArgs(const int32_t& argC, char** argV) {
             g_printAbuseIpDbCsv = true;
         } else if (arg == "--no-ad" || arg == "-n") {
             g_disableAdvertisement = true;
+        } else if (arg == "--detailed" || arg == "-d") {
+            g_useDetailedInfo = true;
         } else {
             cerr << "Unknown argument " << arg << endl;
             continue; // redundant as of now
