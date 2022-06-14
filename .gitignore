@@ -32,3 +32,11 @@ unique_ids
 *.exe
 *.out
 *.app
+endlessh-report
+endlessh-report-debug
+
+# Documentation
+html/
+
+# VS Code logs
+.vscode/*.log
