@@ -395,9 +395,13 @@ void printConnectionStatistics(const uint32_t uniqueAddresses, const uint32_t to
     cout << "|" << uniqueIps << "|" << acceptedConns << "|" << closedConns << "|" << aliveConns << "|";
     
     if (totalTimeWasted > 0) {
-        cout << totalTimeWasted << "|";
+        auto flooredSeconds = std::to_string(roundNumber(totalTimeWasted, 2));
+        tmp = getSpacerString(23, flooredSeconds.size());
+        cout << tmp << flooredSeconds << string(23 - flooredSeconds.size() - tmp.size(), ' ') << '|';
     } if (totalBytesSent > 0) {
-        cout << totalBytesSent << "|";
+        auto totalBytes = std::to_string(totalBytesSent);
+        tmp = getSpacerString(18, totalBytes.size());
+        cout << tmp << totalBytes << string(18 - totalBytes.size() - tmp.size(), ' ') << '|';
     }
 
     cout << endl;
