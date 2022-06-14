@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "group": "build",
+            "command": "g++",
+            "args": [
+                "-o", "endlessh-report",
+                "${workspaceFolder}/main.cpp"
+            ]
+        },
+
+        {
+            "label": "Build (debug)",
+            "group": "build",
+            "command": "g++",
+            "args": [
+                "-o", "endlessh-report",
+                "${workspaceFolder}/main.cpp",
+                "-ggdb", "-O0"
+            ]
+        }
+    ]
+}
