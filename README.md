@@ -2,22 +2,41 @@
 (Very) simple and rudimentary C++ program that reads /var/log/syslog, filters out endlessh logs and determines basic stats, such as unique IDs, total accepted and closed connections. 
 
 # Building
-As a one-file project, I didn't see the need to create a Makefile. <br >
 This will only work on Linux systems.
 
 ```bash
-g++ -std=c++17 -o endlessh-report main.cpp
+# build docs
+make docs
+
+# build debug
+make debug
+
+# build release
+make
+
+# build all
+make all
+
+# clean repo
+make clean
 ```
 
 # Installing
 After building the software, either move or copy it to /usr/local/bin, or add the build path to your local $PATH environment variable.
 
+## System-wide installation
 ```bash
-sudo cp endlessh-report /usr/local/bin/endlessh-report # copy to global path
-sudo mv endlessh-report /usr/local/bin/endlessh-report # move to global path
+# install to /usr/local/bin
+sudo make install
+```
 
-# in ~/.bashrc:
-export PATH="/path/to/repo:$PATH"
+## User-specific install
+```bash
+# ensure local bin-dir exists
+mkdir -p ~/.local/bin || >&2 echo "Failed to create local bin dir!"
+cp -v endlessh-report ~/.local/bin/
+
+echo "export PATH=\"$(realpath ~)/.local/bin:\$PATH\"" | tee -a ~/.bashrc
 ```
 
 # Usage
@@ -26,6 +45,8 @@ After building, simply call:
 
 ```bash
 ./endlessh-report
+# or
+endlessh-report
 ```
 
 ## Arguments
@@ -41,6 +62,7 @@ Switches:
         --stdin                 Read logs from stdin
         --abuse-ipdb, -a        Enable AbuseIPDB-compatible CSV output
         --no-ad, -n             No advertising please!
+        --detailed, -d          Provide detailed information.
         --help, -h              Prints this message and exits
 Arguments:
         --syslog </path/to>     Override default syslog path (/var/log/syslog)
@@ -88,41 +110,6 @@ Resulting in:
 |   ::ffff:112.85.42.88  |    14    |   14   |
 |  ::ffff:122.194.229.40 |    20    |   20   |
 |  ::ffff:122.194.229.45 |    19    |   19   |
-|   ::ffff:141.98.10.63  |    32    |   32   |
-|   ::ffff:141.98.11.16  |    28    |   28   |
-|   ::ffff:198.98.62.88  |     1    |    0   |
-|  ::ffff:209.141.43.186 |    13    |   13   |
-|  ::ffff:221.131.165.33 |    12    |   12   |
-|  ::ffff:221.131.165.50 |    12    |   12   |
-|  ::ffff:221.131.165.56 |    16    |   16   |
-|  ::ffff:221.131.165.62 |    12    |   12   |
-|  ::ffff:221.131.165.65 |    10    |   10   |
-|  ::ffff:221.131.165.75 |    26    |   25   |
-| ::ffff:221.181.185.111 |    14    |   14   |
-| ::ffff:221.181.185.143 |    25    |   25   |
-| ::ffff:221.181.185.151 |    10    |    9   |
-| ::ffff:221.181.185.159 |    33    |   32   |
-|  ::ffff:221.181.185.94 |     9    |    9   |
-| ::ffff:222.121.190.122 |     2    |    2   |
-| ::ffff:222.186.180.130 |    13    |   13   |
-|  ::ffff:222.186.30.112 |    33    |   33   |
-|   ::ffff:222.186.42.7  |    20    |   20   |
-|  ::ffff:222.187.232.39 |    10    |   10   |
-|  ::ffff:222.187.238.58 |    12    |   12   |
-|  ::ffff:222.187.254.41 |    22    |   22   |
-|   ::ffff:45.141.84.10  |     1    |    0   |
-|  ::ffff:45.154.255.147 |     1    |    1   |
-|  ::ffff:45.155.204.161 |    62    |   62   |
-|   ::ffff:45.67.14.25   |     1    |    1   |
-|   ::ffff:45.67.14.29   |     2    |    2   |
-|   ::ffff:46.19.139.18  |    22    |   22   |
-|  ::ffff:49.235.112.157 |     2    |    2   |
-|   ::ffff:49.88.112.77  |    97    |   97   |
-|   ::ffff:62.233.50.53  |    17    |   17   |
-|  ::ffff:92.255.85.135  |    232   |   232  |
-|  ::ffff:92.255.85.146  |    30    |   30   |
-|  ::ffff:92.255.85.237  |    107   |   107  |
-|   ::ffff:92.255.85.28  |    28    |   28   |
 ```
 
 Resulting in:
@@ -136,38 +123,47 @@ Resulting in:
 |   ::ffff:112.85.42.88  |    14    |   14   |
 |  ::ffff:122.194.229.40 |    20    |   20   |
 |  ::ffff:122.194.229.45 |    19    |   19   |
-|   ::ffff:141.98.10.63  |    32    |   32   |
-|   ::ffff:141.98.11.16  |    28    |   28   |
-|   ::ffff:198.98.62.88  |     1    |    0   |
-|  ::ffff:209.141.43.186 |    13    |   13   |
-|  ::ffff:221.131.165.33 |    12    |   12   |
-|  ::ffff:221.131.165.50 |    12    |   12   |
-|  ::ffff:221.131.165.56 |    16    |   16   |
-|  ::ffff:221.131.165.62 |    12    |   12   |
-|  ::ffff:221.131.165.65 |    10    |   10   |
-|  ::ffff:221.131.165.75 |    26    |   25   |
-| ::ffff:221.181.185.111 |    14    |   14   |
-| ::ffff:221.181.185.143 |    25    |   25   |
-| ::ffff:221.181.185.151 |    10    |    9   |
-| ::ffff:221.181.185.159 |    33    |   32   |
-|  ::ffff:221.181.185.94 |     9    |    9   |
-| ::ffff:222.121.190.122 |     2    |    2   |
-| ::ffff:222.186.180.130 |    13    |   13   |
-|  ::ffff:222.186.30.112 |    33    |   33   |
-|   ::ffff:222.186.42.7  |    20    |   20   |
-|  ::ffff:222.187.232.39 |    10    |   10   |
-|  ::ffff:222.187.238.58 |    12    |   12   |
-|  ::ffff:222.187.254.41 |    22    |   22   |
-|   ::ffff:45.141.84.10  |     1    |    0   |
-|  ::ffff:45.154.255.147 |     1    |    1   |
-|  ::ffff:45.155.204.161 |    62    |   62   |
-|   ::ffff:45.67.14.25   |     1    |    1   |
-|   ::ffff:45.67.14.29   |     2    |    2   |
-|   ::ffff:46.19.139.18  |    22    |   22   |
-|  ::ffff:49.235.112.157 |     2    |    2   |
-|   ::ffff:49.88.112.77  |    97    |   97   |
-|   ::ffff:62.233.50.53  |    17    |   17   |
-|  ::ffff:92.255.85.135  |    232   |   232  |
-|  ::ffff:92.255.85.146  |    30    |   30   |
-|  ::ffff:92.255.85.237  |    107   |   107  |
-|   ::ffff:92.255.85.28  |    28    |   28   |
+
+# Detailed Statistics
+Since version v1.1.0 endlessh-report now allows for more detailed reports to be generated.
+These include factors such as bot time wasted, and total bytes sent.
+
+Examples are:
+
+## Detailed IP Statistics
+
+```markdown
+# Statistics per IP
+|          Host          | Accepted | Closed | Total Time (s) | Total Bytes |
+|------------------------|----------|--------|----------------|-------------|
+|      218.92.0.206      |   3552   |  3547  | 2202334.810000 |  262224KiB  |
+|     61.177.172.108     |     8    |    8   |   5282.840000  |   653KiB    |
+|      61.177.173.46     |     8    |    8   |   7328.230000  |   909KiB    |
+```
+
+## Detailed Connection Statistics
+```markdown
+# Connection Statistics
+| Total Unique IPs | Total Accepted Connections | Total Closed Connections | Total Alive Connections | Total Bot Time Wasted | Total Bytes Sent |
+|------------------|----------------------------|--------------------------|-------------------------|-----------------------|------------------|
+|        99        |              0             |             0            |            0            |    4743646.220000     |     595462069    |
+```
+
+## Detailed AbuseIPDB CSV format
+```csv
+IP,Categories,ReportDate,Comment
+218.92.0.206,"18,14,22,15",2022-06-14T21:40:58Z,"218.92.0.206 fell into Endlessh tarpit; opened 3561, closed 3569 connections. Total time wasted: 2.21585e+06s. Total bytes sent by tarpit: 269973303B (Report generated by Endlessh Report Generator)"
+61.177.172.108,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.172.108 fell into Endlessh tarpit; opened 8, closed 8 connections. Total time wasted: 5282.83s. Total bytes sent by tarpit: 669662B (Report generated by Endlessh Report Generator)"
+61.177.173.46,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.173.46 fell into Endlessh tarpit; opened 8, closed 8 connections. Total time wasted: 7328.23s. Total bytes sent by tarpit: 931388B (Report generated by Endlessh Report Generator)"
+136.144.41.181,"18,14,22,15",2022-06-14T21:40:58Z,"136.144.41.181 fell into Endlessh tarpit; opened 1, closed 1 connections. Total time wasted: 116.022s. Total bytes sent by tarpit: 13799B (Report generated by Endlessh Report Generator)"
+61.177.173.50,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.173.50 fell into Endlessh tarpit; opened 12, closed 12 connections. Total time wasted: 9732.31s. Total bytes sent by tarpit: 1255507B (Report generated by Endlessh Report Generator)"
+45.61.188.110,"18,14,22,15",2022-06-14T21:40:58Z,"45.61.188.110 fell into Endlessh tarpit; opened 5, closed 5 connections. Total time wasted: 15.004s. Total bytes sent by tarpit: 1154B (Report generated by Endlessh Report Generator)"
+61.177.173.35,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.173.35 fell into Endlessh tarpit; opened 10, closed 10 connections. Total time wasted: 6529.89s. Total bytes sent by tarpit: 831889B (Report generated by Endlessh Report Generator)"
+61.177.172.98,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.172.98 fell into Endlessh tarpit; opened 9, closed 9 connections. Total time wasted: 4610.36s. Total bytes sent by tarpit: 592071B (Report generated by Endlessh Report Generator)"
+223.71.167.164,"18,14,22,15",2022-06-14T21:40:58Z,"223.71.167.164 fell into Endlessh tarpit; opened 3, closed 3 connections. Total time wasted: 8.001s. Total bytes sent by tarpit: 598B (Report generated by Endlessh Report Generator)"
+45.61.185.160,"18,14,22,15",2022-06-14T21:40:58Z,"45.61.185.160 fell into Endlessh tarpit; opened 3, closed 3 connections. Total time wasted: 9.004s. Total bytes sent by tarpit: 955B (Report generated by Endlessh Report Generator)"
+78.142.18.204,"18,14,22,15",2022-06-14T21:40:58Z,"78.142.18.204 fell into Endlessh tarpit; opened 28, closed 28 connections. Total time wasted: 103.027s. Total bytes sent by tarpit: 9708B (Report generated by Endlessh Report Generator)"
+61.177.173.51,"18,14,22,15",2022-06-14T21:40:58Z,"61.177.173.51 fell into Endlessh tarpit; opened 7, closed 7 connections. Total time wasted: 3609.56s. Total bytes sent by tarpit: 463135B (Report generated by Endlessh Report Generator)"
+67.207.83.91,"18,14,22,15",2022-06-14T21:40:58Z,"67.207.83.91 fell into Endlessh tarpit; opened 1, closed 1 connections. Total time wasted: 6.002s. Total bytes sent by tarpit: 644B (Report generated by Endlessh Report Generator)"
+45.61.184.111,"18,14,22,15",2022-06-14T21:40:58Z,"45.61.184.111 fell into Endlessh tarpit; opened 7, closed 7 connections. Total time wasted: 21.004s. Total bytes sent by tarpit: 2096B (Report generated by Endlessh Report Generator)"
+```
