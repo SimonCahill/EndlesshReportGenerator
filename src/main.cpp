@@ -14,6 +14,7 @@
 #include <date/date.h> // full path here to remain easy to compile
 
 #include "version.hpp"
+#include "options.hpp"
 
 ////////////////////////////////
 //  Standard Includes (STL)   //
@@ -73,7 +74,7 @@ struct ConnectionDetails {
 bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens); //!< Splits a string by one or more delimiters
 bool                                    regexMatch(const char* haystack, const char* needle); //!< Matches a string against a regular expression
 double  	                            roundNumber(const double x, const uint32_t decimalPlaces); //!<
-int32_t                                 parseArgs(const int32_t&, const char**); //!< Parses command-line arguments
+int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
 map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
 string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
 string                                  getSpacerString(const uint32_t totalWidth, const uint32_t strLength); //!< Gets the spacer string (might be removed)
@@ -88,7 +89,7 @@ void                                    printIpStats(const map<string, pair<uint
 void                                    printDetailedIpStats(const vector<ConnectionDetails>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
 
 int main(int32_t argC, char** argV) {
-    if (parseArgs(argC, const_cast<const char**>(argV)) == 1) {
+    if (parseArgs(argC, argV) == 1) {
         return 0;
     }
 
@@ -654,48 +655,44 @@ string trim(const string& nonTrimmed, const string& trimChar) { return trimStart
  * 
  * @return int32_t 1 if the application should terminate. 0 otherwise
  */
-int32_t parseArgs(const int32_t& argC, const char** argV) {
-    for (int32_t i = 1; i < argC; i++) {
-        string arg = argV[i];
+int32_t parseArgs(const int32_t& argc, char** argv) {
+    int32_t curIdx = 0;
+    char optVal = 0;
 
-        if (arg == "-h" || arg == "--help") {
-            cout << "Usage: " << argV[0] << endl
-                 << "Usage: " << argV[0] << " [options]" << endl
-                 << "Usage: cat file | " << argV[0] << "--stdin" << endl << endl
-
-                 << "Switches:" << endl
-                 << "\t--no-ip-stats, -i\tDon't print IP statistics" << endl
-                 << "\t--no-cn-stats, -c\tDon't print connection statistics" << endl
-                 << "\t--stdin \t\tRead logs from stdin" << endl
-                 << "\t--abuse-ipdb, -a\tEnable AbuseIPDB-compatible CSV output" << endl
-                 << "\t--no-ad, -n\t\tNo advertising please!" << endl
-                 << "\t--detailed, -d\t\tProvide detailed information." << endl
-                 << "\t--help, -h\t\tPrints this message and exits" << endl
-                 << "Arguments:" << endl
-                 << "\t--syslog </path/to>\tOverride default syslog path (" << g_logLocation << ")" << endl;
-
-            return 1;
-        } else if (arg == "--no-ip-stats" || arg == "-i") {
-            g_printIpStatistics = false;
-        } else if (arg == "--no-cn-stats" || arg == "-c") {
-            g_printConnectionStatistics = false;
-        } else if (arg == "--syslog") {
-            ++i;
-            g_logLocation = argV[i];
-        } else if (arg == "--stdin") {
-            g_readFromStdIn = true;
-        } else if (arg == "--abuse-ipdb" || arg == "-a") {
-            g_printAbuseIpDbCsv = true;
-        } else if (arg == "--no-ad" || arg == "-n") {
-            g_disableAdvertisement = true;
-        } else if (arg == "--detailed" || arg == "-d") {
-            g_useDetailedInfo = true;
-        } else if (arg == "--version" || arg == "-v") {
-            cout << "v" << getApplicationVersion() << endl;
-            return 1;
-        } else {
-            cerr << "Unknown argument " << arg << endl;
-            continue; // redundant as of now
+    while ((optVal = getopt_long(argc, argv, getAppArgs().data(), getAppOptions(), &curIdx)) != -1) {
+        switch (optVal) {
+            default:
+            case 'h':
+                cout << getAppHelpText() << endl;
+                return 1;
+            case 'i':
+                g_printIpStatistics = false;
+                break;
+            case 'c':
+                g_printConnectionStatistics = false;
+                break;
+            case 'S':
+                if (optarg == nullptr) {
+                    cerr << "Missing path to new syslog!" << endl;
+                    return 1;
+                }
+                g_logLocation = optarg;
+                break;
+            case 's':
+                g_readFromStdIn = true;
+                break;
+            case 'a':
+                g_printAbuseIpDbCsv = true;
+                break;
+            case 'n':
+                g_disableAdvertisement = true;
+                break;
+            case 'd':
+                g_useDetailedInfo = true;
+                break;
+            case 'v':
+                cout << getAppVersionText() << endl;
+                return 1;
         }
     }
 
