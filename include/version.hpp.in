@@ -21,4 +21,6 @@ constexpr string_view getProjectName() { return R"(@PROJECT_NAME@)"; }
 
 constexpr string_view getProjectDescription() { return R"(@PROJECT_DESCRIPTION@)"; }
 
+constexpr string_view getLongProjectName() { return R"(@PROJECT_LONG_NAME@)"; }
+
 #endif // ENDLESSH_REPORT_INCLUDE_VERSION_HPP
