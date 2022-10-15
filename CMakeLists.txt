@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(endlessh-report VERSION 1.1.2 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
+project(endlessh-report VERSION 1.2.0 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
 set(PROJECT_LONG_NAME "Endlessh Report Generator")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
