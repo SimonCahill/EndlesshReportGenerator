@@ -5,20 +5,22 @@
 This will only work on Linux systems.
 
 ```bash
-# build docs
-make docs
+mkdir build && cd build # create build directory
 
-# build debug
-make debug
+# generate makefiles
+cmake ..
 
-# build release
+# build and generate .deb
+cpack .
+
+# only build application
 make
 
-# build all
-make all
+# make docs
+make docs
 
-# clean repo
-make clean
+# make everything
+make all
 ```
 
 # Installing
@@ -27,6 +29,7 @@ After building the software, either move or copy it to /usr/local/bin, or add th
 ## System-wide installation
 ```bash
 # install to /usr/local/bin
+cd build 
 sudo make install
 ```
 
