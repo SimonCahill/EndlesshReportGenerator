@@ -13,8 +13,9 @@
 ////////////////////////////////
 #include <date/date.h> // full path here to remain easy to compile
 
-#include "version.hpp"
+#include "extensions.hpp"
 #include "options.hpp"
+#include "version.hpp"
 
 ////////////////////////////////
 //  Standard Includes (STL)   //
