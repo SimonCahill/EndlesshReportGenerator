@@ -11,7 +11,9 @@
 ////////////////////////////////
 //  Project-Specific Includes //
 ////////////////////////////////
-#include "date/include/date/date.h" // full path here to remain easy to compile
+#include <date/date.h> // full path here to remain easy to compile
+
+#include "version.hpp"
 
 ////////////////////////////////
 //  Standard Includes (STL)   //
@@ -71,22 +73,22 @@ struct ConnectionDetails {
 bool                                    splitString(const string& str, const string& delimiters, vector<string> &tokens); //!< Splits a string by one or more delimiters
 bool                                    regexMatch(const char* haystack, const char* needle); //!< Matches a string against a regular expression
 double  	                            roundNumber(const double x, const uint32_t decimalPlaces); //!<
-int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
+int32_t                                 parseArgs(const int32_t&, const char**); //!< Parses command-line arguments
 map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
 string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
 string                                  getSpacerString(const uint32_t totalWidth, const uint32_t strLength); //!< Gets the spacer string (might be removed)
 string                                  trimStart(string nonTrimmed, const string& trimChar); //!< Trims the start of a string
 string                                  trimEnd(string nonTrimmed, const string& trimChar); //!< Trims the end of a string
-string                                  trim(string nonTrimmed, const string& trimChar); //!< Trims a string
+string                                  trim(const string& nonTrimmed, const string& trimChar); //!< Trims a string
 vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
 vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
 void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
 void                                    printIpStatsTableHeader(); //!< Prints the markdown header for the statistics table
-void                                    printIpStats(const map<string, pair<uint32_t, uint32_t>>, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints the IP stats
-void                                    printDetailedIpStats(const vector<ConnectionDetails>, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
+void                                    printIpStats(const map<string, pair<uint32_t, uint32_t>>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints the IP stats
+void                                    printDetailedIpStats(const vector<ConnectionDetails>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
 
 int main(int32_t argC, char** argV) {
-    if (parseArgs(argC, argV) == 1) {
+    if (parseArgs(argC, const_cast<const char**>(argV)) == 1) {
         return 0;
     }
 
@@ -244,7 +246,7 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
         bool isAccept = false;
         string hostToken;
 
-        for (const auto token : tokens) {
+        for (const auto& token : tokens) {
             if (regexMatch(token.c_str(), R"(host=[^\s])")) {
                 hostToken = token.substr(token.find('=') + 1);
             } else if (token == "ACCEPT") {
@@ -293,7 +295,7 @@ vector<ConnectionDetails> getDetailledConnections(const vector<string>& logConte
         string timeToken;
         string bytesToken;
 
-        for (const auto token : tokens) {
+        for (const auto& token : tokens) {
             if (regexMatch(token.c_str(), R"(host=[^\s])")) {
                 hostToken = token.substr(token.find('=') + 1);
             } else if (token == "ACCEPT") {
@@ -429,7 +431,7 @@ void printIpStatsTableHeader() {
  * @param totalAcceptedConnections A reference to an unsigned int which will contain the total number of accepted connections.
  * @param totalClosedConnections A reference to an unsigned int which will contain the total number of closed connections.
  */
-void printIpStats(const map<string, pair<uint32_t, uint32_t>> connectionList, uint32_t& totalAcceptedConnections, uint32_t& totalClosedConnections) {
+void printIpStats(const map<string, pair<uint32_t, uint32_t>>& connectionList, uint32_t& totalAcceptedConnections, uint32_t& totalClosedConnections) {
     for (const auto& connection : connectionList) {
         totalAcceptedConnections += connection.second.first;
         totalClosedConnections += connection.second.second;
@@ -461,7 +463,7 @@ void printIpStats(const map<string, pair<uint32_t, uint32_t>> connectionList, ui
  * @param totalAccepted The total accepted connections.
  * @param totalClosed The total closed connections.
  */
-void printDetailedIpStats(const vector<ConnectionDetails> connectionList, uint32_t& totalAccepted, uint32_t& totalClosed) {
+void printDetailedIpStats(const vector<ConnectionDetails>& connectionList, uint32_t& totalAccepted, uint32_t& totalClosed) {
     for (const auto& connection : connectionList) {
         totalAccepted += connection.acceptedConnections;
         totalClosed += connection.closedConnections;
@@ -642,7 +644,7 @@ string trimEnd(string nonTrimmed, const string& trimChar) {
  *
  * @return The trimmed string.
  */
-string trim(string nonTrimmed, const string& trimChar) { return trimStart(trimEnd(nonTrimmed, trimChar), trimChar); }
+string trim(const string& nonTrimmed, const string& trimChar) { return trimStart(trimEnd(nonTrimmed, trimChar), trimChar); }
 
 /**
  * @brief Parses arguments passed to the application and sets values accordingly.
@@ -652,7 +654,7 @@ string trim(string nonTrimmed, const string& trimChar) { return trimStart(trimEn
  * 
  * @return int32_t 1 if the application should terminate. 0 otherwise
  */
-int32_t parseArgs(const int32_t& argC, char** argV) {
+int32_t parseArgs(const int32_t& argC, const char** argV) {
     for (int32_t i = 1; i < argC; i++) {
         string arg = argV[i];
 
@@ -688,6 +690,9 @@ int32_t parseArgs(const int32_t& argC, char** argV) {
             g_disableAdvertisement = true;
         } else if (arg == "--detailed" || arg == "-d") {
             g_useDetailedInfo = true;
+        } else if (arg == "--version" || arg == "-v") {
+            cout << "v" << getApplicationVersion() << endl;
+            return 1;
         } else {
             cerr << "Unknown argument " << arg << endl;
             continue; // redundant as of now

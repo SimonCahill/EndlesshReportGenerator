@@ -1,4 +1,6 @@
 unique_ids
+endlessh-report
+build/
 
 # Prerequisites
 *.d

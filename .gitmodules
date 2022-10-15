@@ -1,6 +1,6 @@
 [submodule "doxygen-awesome-css"]
-	path = doxygen-awesome-css
+	path = submodules/doxygen-awesome-css
 	url = https://github.com/jothepro/doxygen-awesome-css.git
 [submodule "date"]
-	path = date
+	path = submodules/date
 	url = https://github.com/HowardHinnant/date
