@@ -130,8 +130,26 @@ int main(int32_t argC, char** argV) {
 
     if (g_printConnectionStatistics) {
         if (!g_useDetailedInfo) {
+            if (totalAcceptedConnections == 0 || totalClosedConnections == 0) {
+                totalAcceptedConnections = totalClosedConnections = 0; // Just make sure they're both zero
+                // This is stupid. I need to refactor the living fuck out of this code...
+                // It's best if I only use the detailed stats and then adjust the list accordingly
+                std::for_each(normalConnList.begin(), normalConnList.end(), [&](const pair<string, pair<uint32_t, uint32_t>>& x) {
+                    totalAcceptedConnections += x.second.first;
+                    totalClosedConnections += x.second.second;
+                });
+            }
             printConnectionStatistics(normalConnList.size(), totalAcceptedConnections, totalClosedConnections, 0, 0);
         } else {
+            if (totalAcceptedConnections == 0 || totalClosedConnections == 0) {
+                totalAcceptedConnections = totalClosedConnections = 0; // Just make sure they're both zero
+                // Again. Totally stupid. I need to refactor this. Big time.
+                std::for_each(detailedConnList.begin(), detailedConnList.end(), [&](const ConnectionDetails& x) {
+                    totalAcceptedConnections += x.acceptedConnections;
+                    totalClosedConnections += x.closedConnections;
+                });
+            }
+
             double totalSeconds = 0;
             size_t totalBytes = 0;
             std::for_each(detailedConnList.begin(), detailedConnList.end(), [&](const ConnectionDetails& x) {
@@ -168,13 +186,13 @@ int main(int32_t argC, char** argV) {
                     ip = ip.substr(offset + 7);
                 }
 
-                int32_t closedConnections = entry.closedConnections;
-                int32_t openConnections = entry.acceptedConnections - closedConnections;
+                int32_t totalConnections = entry.closedConnections;
+                int32_t openConnections = entry.acceptedConnections - totalConnections;
 
                 if (openConnections < 0) {
                     // This can happen if the log was rotated before a connection was closed
                     openConnections *= -1;
-                    closedConnections += openConnections;
+                    totalConnections += openConnections;
                 }
 
                 fmt::print(
@@ -182,7 +200,7 @@ int main(int32_t argC, char** argV) {
                     ip, categories, timestamp,
                     format(
                         detailedCommentFmt,
-                        ip, openConnections, closedConnections,
+                        ip, openConnections, totalConnections,
                         getHumanReadableTime(entry.totalSecondsWasted),
                         getHumanReadableBytes(entry.totalBytesSent)
                     ), "\n"
@@ -462,8 +480,13 @@ void printIpStats(const map<string, pair<uint32_t, uint32_t>>& connectionList, u
 
         if (g_printIpStatistics) {
             string lastSpacer;
-            cout << "|" << (lastSpacer = getSpacerString(24, connection.first.size()))
-                << connection.first << string(24 - connection.first.size() - lastSpacer.size(), ' ') 
+            string tmpString;
+            const auto offset = connection.first.find("::ffff:");
+            if (offset != string::npos) {
+                tmpString = connection.first.substr(offset + 7);
+            }
+            cout << "|" << (lastSpacer = getSpacerString(24, tmpString.size()))
+                << tmpString << string(24 - tmpString.size() - lastSpacer.size(), ' ') 
                 << "|";
 
             auto strLength = std::to_string(connection.second.first).size();
