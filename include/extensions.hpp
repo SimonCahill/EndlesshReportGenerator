@@ -24,6 +24,9 @@
 // date
 #include <date/date.h>
 
+// fmt
+#include <fmt/format.h>
+
 using std::chrono::seconds;
 using std::chrono::system_clock;
 using std::function;
@@ -106,6 +109,54 @@ inline double roundNumber(const double x, const uint32_t decimalPlaces) {
 inline string getCurrentIsoTimestamp() {
     auto timeNow = system_clock::now();
     return date::format("%FT%TZ", date::floor<seconds>(timeNow));
+}
+
+/**
+ * @brief Converts a number of bytes to a human-readable format, such as KiB, MiB, GiB, ...
+ * 
+ * @param bytes The bytes to convert.
+ * 
+ * @return string The human-readable string.
+ */
+inline string getHumanReadableBytes(const size_t bytes) {
+    const static size_t ONE_KIB = 1024;
+    const static size_t ONE_MIB = ONE_KIB * ONE_KIB;
+    const static size_t ONE_GIB = ONE_MIB * ONE_MIB;
+    
+    if (bytes > ONE_GIB) { return fmt::format("{0:.2f}GiB", static_cast<double>(bytes / ONE_GIB)); }
+    if (bytes > ONE_MIB) { return fmt::format("{0:.2f}MiB", static_cast<double>(bytes / ONE_MIB)); }
+    if (bytes > ONE_KIB) { return fmt::format("{0:.2f}KiB", static_cast<double>(bytes / ONE_KIB)); }
+
+    // We're likely less than a KiB
+    return fmt::format("{0:d}B", bytes);
+}
+
+/**
+ * @brief Converts n seconds into a human-readable form. E.g. 300s would become 5 minutes
+ * 
+ * @param seconds The amount of seconds to convert.
+ * 
+ * @return string The human-readable string
+ */
+inline string getHumanReadableTime(const double seconds) {
+    if (seconds < 60) { return fmt::format("{0:.0f}s", floor(seconds)); }
+
+    string result{};
+    time_t secondsAsTime = static_cast<time_t>(seconds);
+    struct tm timeStruct = {0};
+    gmtime_r(&secondsAsTime, &timeStruct);
+
+    if (timeStruct.tm_yday > 0) {
+        result += fmt::format("{0:d}d ", timeStruct.tm_yday);
+    } if (timeStruct.tm_hour > 0) {
+        result += fmt::format("{0:d}h ", timeStruct.tm_hour);
+    } if (timeStruct.tm_min > 0) {
+        result += fmt::format("{0:d}m ", timeStruct.tm_min);
+    } if (timeStruct.tm_sec > 0) {
+        result += fmt::format("{0:d}s", timeStruct.tm_sec);
+    }
+
+    return result;
 }
 
 /**
