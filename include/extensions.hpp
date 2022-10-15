@@ -14,6 +14,7 @@
 // stl
 #include <chrono>
 #include <cmath>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,9 @@
 // date
 #include <date/date.h>
 
+using std::chrono::seconds;
+using std::chrono::system_clock;
+using std::function;
 using std::string;
 using std::vector;
 
