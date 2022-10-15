@@ -17,4 +17,8 @@ using std::string_view;
 
 constexpr string_view getApplicationVersion() { return R"(@PROJECT_VERSION@)"; }
 
+constexpr string_view getProjectName() { return R"(@PROJECT_NAME@)"; }
+
+constexpr string_view getProjectDescription() { return R"(@PROJECT_DESCRIPTION@)"; }
+
 #endif // ENDLESSH_REPORT_INCLUDE_VERSION_HPP
