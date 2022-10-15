@@ -25,17 +25,17 @@
 using std::string;
 using std::string_view;
 
-constexpr string_view   getAppArgs() { return R"(icSandhvs:)"; }
+constexpr string_view   getAppArgs() { return R"(icsandhvS:)"; }
 
 const option*           getAppOptions() {
     const static option OPTIONS[] = {
         { "no-ip-stats",    no_argument,        nullptr,    'i' },
         { "no-cn-stats",    no_argument,        nullptr,    'c' },
-        { "stdin",          no_argument,        nullptr,    'S' },
+        { "stdin",          no_argument,        nullptr,    's' },
         { "abuse-ipdb",     no_argument,        nullptr,    'a' },
         { "detailed",       no_argument,        nullptr,    'd' },
         { "help",           no_argument,        nullptr,    'h' },
-        { "syslog",         required_argument,  nullptr,    's' },
+        { "syslog",         required_argument,  nullptr,    'S' },
         { "version",        no_argument,        nullptr,    'v' },
         { nullptr,          no_argument,        nullptr,     0  }
     };
