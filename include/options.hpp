@@ -11,7 +11,7 @@
 #ifndef ENDLESSH_REPORT_INCLUDE_OPTIONS_HPP
 #define ENDLESSH_REPORT_INCLUDE_OPTIONS_HPP
 
-#include "options.hpp"
+#include "version.hpp"
 
 // stl
 #include <string>
