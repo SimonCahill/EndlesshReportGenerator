@@ -30,6 +30,7 @@ else()
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/date)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/fmt)
 
 file(GLOB_RECURSE FILES FOLLOW_SYMLINKS ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
 
@@ -43,6 +44,7 @@ target_link_libraries(
     ${PROJECT_NAME}
 
     date
+    fmt
 )
 
 ###
