@@ -421,11 +421,11 @@ void printConnectionStatistics(const uint32_t uniqueAddresses, const uint32_t to
     cout << "|" << uniqueIps << "|" << acceptedConns << "|" << closedConns << "|" << aliveConns << "|";
     
     if (totalTimeWasted > 0) {
-        auto flooredSeconds = std::to_string(roundNumber(totalTimeWasted, 2));
+        auto flooredSeconds = getHumanReadableTime(totalTimeWasted);
         tmp = getSpacerString(23, flooredSeconds.size());
         cout << tmp << flooredSeconds << string(23 - flooredSeconds.size() - tmp.size(), ' ') << '|';
     } if (totalBytesSent > 0) {
-        auto totalBytes = std::to_string(totalBytesSent);
+        auto totalBytes = getHumanReadableBytes(totalBytesSent);
         tmp = getSpacerString(18, totalBytes.size());
         cout << tmp << totalBytes << string(18 - totalBytes.size() - tmp.size(), ' ') << '|';
     }
@@ -514,22 +514,17 @@ void printDetailedIpStats(const vector<ConnectionDetails>& connectionList, uint3
              << connection.closedConnections << string(8 - strLength - lastSpacer.size(), ' ')
              << "|";
 
-        const auto flooredSeconds = roundNumber(connection.totalSecondsWasted, 2);
-        strLength = (tmpString = std::to_string(flooredSeconds)).size();
+        strLength = (tmpString = getHumanReadableTime(connection.totalSecondsWasted)).size();
         cout << (lastSpacer = getSpacerString(16, strLength))
              << tmpString
              << string(16 - strLength - lastSpacer.size(), ' ')
              << "|";
 
         
-        if (connection.totalBytesSent > 1024) {
-            tmpString = std::to_string(connection.totalBytesSent / 1024) + "KiB";
-        } else {
-            tmpString = std::to_string(connection.totalBytesSent);
-        }
+        tmpString = getHumanReadableBytes(connection.totalBytesSent);
         strLength = tmpString.size();
         cout << (lastSpacer = getSpacerString(13, strLength))
-             << (connection.totalBytesSent > 1024 ? std::to_string(connection.totalBytesSent / 1024) + "KiB" : std::to_string(connection.totalBytesSent)) << string(13 - strLength - lastSpacer.size(), ' ')
+             << tmpString << string(13 - strLength - lastSpacer.size(), ' ')
              << "|";
 
         cout << endl;
