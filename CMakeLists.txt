@@ -18,7 +18,7 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-if (DEFINED endlesshreport_DEBUG)
+if (DEFINED endlesshreport_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         -O0
         -ggdb
