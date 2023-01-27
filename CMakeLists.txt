@@ -30,6 +30,15 @@ else()
     )
 endif()
 
+###
+# Make sure submodules are updated
+###
+message("Ensuring repository has all submodules...")
+execute_process(
+    COMMAND git submodule update --init --recursive
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/date)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/fmt)
 
