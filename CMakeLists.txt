@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(endlessh-report VERSION 1.2.2 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
+project(endlessh-report VERSION 1.2.3 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
 set(PROJECT_LONG_NAME "Endlessh Report Generator")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -18,7 +18,7 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
-if (DEFINED endlesshreport_DEBUG)
+if (DEFINED endlesshreport_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
         -O0
         -ggdb
@@ -29,6 +29,15 @@ else()
         -s
     )
 endif()
+
+###
+# Make sure submodules are updated
+###
+message("Ensuring repository has all submodules...")
+execute_process(
+    COMMAND git submodule update --init --recursive
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/date)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/fmt)
