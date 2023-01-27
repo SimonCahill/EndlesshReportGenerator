@@ -78,7 +78,6 @@ struct ConnectionDetails {
 
 static int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
 static map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
-static string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
 static vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
 static vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
 static void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
