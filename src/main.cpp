@@ -47,43 +47,44 @@ using std::pair;
 using std::string;
 using std::vector;
 
-bool    g_error = false; //!< Whether or not a fatal error occurred
-bool    g_disableAdvertisement = false; //!< Whether or not to disable advertisement (default: false)
-bool    g_printAbuseIpDbCsv = false; //!< Whether or not to output AbuseIPDB-compatible CSV data (default: false; disables markdown-compatible stats)
-bool    g_printIpStatistics = true; //!< Whether or not to print IP stats (default: true)
-bool    g_printConnectionStatistics = true; //!< Whether or not to print connection stats (default: true)
-bool    g_readFromStdIn = false; //!< Whether or not to read from stdin (default: false)
-bool    g_useDetailedInfo = false; //!< Whether or not reports should be detailed (default: false)
-string  g_logLocation = "/var/log/syslog"; //!< Default endlessh log location (default: /var/log/syslog)
+static bool    g_error = false; //!< Whether or not a fatal error occurred
+static bool    g_disableAdvertisement = false; //!< Whether or not to disable advertisement (default: false)
+static bool    g_printAbuseIpDbCsv = false; //!< Whether or not to output AbuseIPDB-compatible CSV data (default: false; disables markdown-compatible stats)
+static bool    g_printIpStatistics = true; //!< Whether or not to print IP stats (default: true)
+static bool    g_printConnectionStatistics = true; //!< Whether or not to print connection stats (default: true)
+static bool    g_readFromStdIn = false; //!< Whether or not to read from stdin (default: false)
+static bool    g_useDetailedInfo = false; //!< Whether or not reports should be detailed (default: false)
+static string  g_logLocation = "/var/log/syslog"; //!< Default endlessh log location (default: /var/log/syslog)
 
 /**
  * @brief Contains information about a given connection.
  */
 struct ConnectionDetails {
-    size_t              acceptedConnections;
-    size_t              closedConnections;
+    size_t              acceptedConnections; //!< The total amount of accepted connections
+    size_t              closedConnections; //!< The total amount of closed connections
 
-    vector<uint16_t>    usedPorts;
+    vector<uint16_t>    usedPorts; //!< The amount of ports used.
 
-    double              totalSecondsWasted;
+    double              totalSecondsWasted; //!< The total seconds of bot time wasted
 
-    size_t              totalBytesSent;
+    size_t              totalBytesSent; //!< The total amount of bytes sent to the bots
 
-    string              host;
+    string              host; //!< The host trying to attack the system.
 
     ConnectionDetails(): acceptedConnections(0), closedConnections(0),
     usedPorts({}), totalSecondsWasted(0), totalBytesSent(0), host({}) {}
+    ~ConnectionDetails() = default;
 };
 
-int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
-map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
-string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
-vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
-vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
-void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
-void                                    printIpStatsTableHeader(); //!< Prints the markdown header for the statistics table
-void                                    printIpStats(const map<string, pair<uint32_t, uint32_t>>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints the IP stats
-void                                    printDetailedIpStats(const vector<ConnectionDetails>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
+static int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
+static map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
+static string                                  getCurrentIsoTimestamp(); //!< Gets the current time as an ISO timestamp, accurate to the current second.
+static vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
+static vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
+static void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
+static void                                    printIpStatsTableHeader(); //!< Prints the markdown header for the statistics table
+static void                                    printIpStats(const map<string, pair<uint32_t, uint32_t>>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints the IP stats
+static void                                    printDetailedIpStats(const vector<ConnectionDetails>&, uint32_t& totalAccepted, uint32_t& totalClosed); //!< Prints detailed IP stats
 
 int main(int32_t argC, char** argV) {
     if (parseArgs(argC, argV) == 1) {
@@ -275,6 +276,13 @@ vector<string> readEndlesshLog() {
     return output;
 }
 
+/**
+ * @brief Gets a map containing all of the opened and closed connections to the server.
+ * 
+ * @param logContents The contents of the log file as an array of lines.
+ * 
+ * @return map<string, pair<uint32_t, uint32_t>> A map containing the basic connection statistics.
+ */
 map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logContents) {
     map<string, pair<uint32_t, uint32_t>> connections;
 
@@ -321,6 +329,13 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
     return connections;
 }
 
+/**
+ * @brief Gets a list with detailled information about all the incoming connections to the server.
+ * 
+ * @param logContents The log file contents passed as an array of lines.
+ * 
+ * @return vector<ConnectionDetails> A list of @see ConnectionDetails containing all the goodies.
+ */
 vector<ConnectionDetails> getDetailledConnections(const vector<string>& logContents) {
     vector<ConnectionDetails> returnVal{};
 
