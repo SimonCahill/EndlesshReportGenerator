@@ -5,7 +5,7 @@
  * @version 0.1
  * @date 2022-10-15
  * 
- * @copyright Copyright (c) 2022 Simon Cahill
+ * @copyright Copyright (c) 2023 Simon Cahill
  */
 
 #ifndef ENDLESSH_REPORT_INCLUDE_OPTIONS_HPP
