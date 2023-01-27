@@ -55,7 +55,7 @@ endlessh-report
 ## Arguments
 
 ```
-endlessh-report v1.2.1 - A simple report generator for endlessh tarpits.
+endlessh-report v1.2.3 - A simple report generator for endlessh tarpits.
 
 Usage:
     endlessh-report
