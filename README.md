@@ -74,7 +74,7 @@ Switches:
     --version,      -v      Display version information and exit
 
 Arguments:
-    --syslog [f],   -S[f]      Override syslog/endlessh log location
+    --syslog [f],   -S[f]   Override syslog/endlessh log location
 ```
 
 ## Output
