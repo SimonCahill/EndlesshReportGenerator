@@ -3,6 +3,7 @@ A simple C++ program that reads /var/log/syslog, filters out endlessh logs and d
 
 [![GitHub all releases](https://img.shields.io/github/downloads/SimonCahill/endlesshreportgenerator/total?logo=github)](https://github.com/SimonCahill/endlesshreportgenerator/Releases)
 ![GitHub](https://img.shields.io/github/license/SimonCahill/endlesshreportgenerator)
+[![CodeQL](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/codeql-analysis.yml)
 
 # Building
 This will only work on Linux systems.
