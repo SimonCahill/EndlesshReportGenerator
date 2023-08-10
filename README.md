@@ -1,7 +1,7 @@
 # Endlessh Report Generator
 A simple C++ program that reads /var/log/syslog, filters out endlessh logs and determines basic stats, such as unique IDs, total accepted and closed connections.
 
-[![GitHub all releases](https://img.shields.io/github/downloads/SimonCahill/endlesshreportgenerator/total?logo=github)](https://github.com/SimonCahill/endlesshreportgenerator/Releases)
+[![GitHub all releases](https://img.shields.io/github/downloads/SimonCahill/endlesshreportgenerator/total?logo=github)](https://github.com/SimonCahill/endlesshreportgenerator/releases)
 ![GitHub](https://img.shields.io/github/license/SimonCahill/endlesshreportgenerator)
 [![CodeQL](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/codeql-analysis.yml)
 [![Build](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/cmake.yml/badge.svg)](https://github.com/SimonCahill/EndlesshReportGenerator/actions/workflows/cmake.yml)
