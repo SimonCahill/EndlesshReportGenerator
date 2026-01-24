@@ -1,0 +1,9 @@
+build
+.git
+.gitmodules
+submodules/fmt/.git
+submodules/date/.git
+*.tar.gz
+*.zip
+bin
+__pycache__
