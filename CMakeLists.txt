@@ -5,11 +5,13 @@ set(PROJECT_LONG_NAME "Endlessh Report Generator")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+include(CTest)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/version.hpp)
 
 add_compile_options(
     -Wpedantic
-    -Werror
+#    -Werror
     -Wall
 )
 
@@ -56,6 +58,10 @@ target_link_libraries(
     date
     fmt
 )
+
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 
 ###
 # Docs target

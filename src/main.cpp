@@ -15,6 +15,7 @@
 
 #include "extensions.hpp"
 #include "options.hpp"
+#include "report_cache.hpp"
 #include "version.hpp"
 
 ////////////////////////////////
@@ -25,6 +26,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,14 +49,28 @@ using std::pair;
 using std::string;
 using std::vector;
 
-static bool    g_error = false; //!< Whether or not a fatal error occurred
-static bool    g_disableAdvertisement = false; //!< Whether or not to disable advertisement (default: false)
-static bool    g_printAbuseIpDbCsv = false; //!< Whether or not to output AbuseIPDB-compatible CSV data (default: false; disables markdown-compatible stats)
-static bool    g_printIpStatistics = true; //!< Whether or not to print IP stats (default: true)
-static bool    g_printConnectionStatistics = true; //!< Whether or not to print connection stats (default: true)
-static bool    g_readFromStdIn = false; //!< Whether or not to read from stdin (default: false)
-static bool    g_useDetailedInfo = false; //!< Whether or not reports should be detailed (default: false)
-static string  g_logLocation = "/var/log/syslog"; //!< Default endlessh log location (default: /var/log/syslog)
+static bool    g_error{false}; //!< Whether or not a fatal error occurred
+static bool    g_disableAdvertisement{false}; //!< Whether or not to disable advertisement (default: false)
+static bool    g_performDnsLookup{false}; //!< Whether or not to perform DNS lookups (default: false)
+static bool    g_printAbuseIpDbCsv{false}; //!< Whether or not to output AbuseIPDB-compatible CSV data (default: false; disables markdown-compatible stats)
+static bool    g_printIpStatistics{true}; //!< Whether or not to print IP stats (default: true)
+static bool    g_printConnectionStatistics{true}; //!< Whether or not to print connection stats (default: true)
+static bool    g_readFromStdIn{false}; //!< Whether or not to read from stdin (default: false)
+static bool    g_sortIpStats{false}; //!< Whether or not to sort the IP statistics (default: false)
+static bool    g_useDetailedInfo{false}; //!< Whether or not reports should be detailed (default: false)
+static bool    g_strict{false}; //!< Whether or not unchanged IPs should be skipped from per-IP listings (default: false)
+static string  g_logLocation{"/var/log/syslog"}; //!< Default endlessh log location (default: /var/log/syslog)
+static string  g_cacheFile{ReportCache::defaultCachePath()}; //!< Cache file location
+static bool    g_cacheDirty{false}; //!< Whether or not the cache needs to be written
+static std::unique_ptr<ReportCache> g_reportCache{}; //!< Loaded cache (only when required)
+
+static string normalizeIp(string ip) {
+    const auto offset = ip.find("::ffff:");
+    if (offset != string::npos) {
+        ip = ip.substr(offset + 7);
+    }
+    return ip;
+}
 
 /**
  * @brief Contains information about a given connection.
@@ -78,6 +94,7 @@ struct ConnectionDetails {
 
 static int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
 static map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
+static string                                  getHostFromIp(const string&); //!< Gets the host from an IP address
 static vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
 static vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
 static void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
@@ -88,6 +105,16 @@ static void                                    printDetailedIpStats(const vector
 int main(int32_t argC, char** argV) {
     if (parseArgs(argC, argV) == 1) {
         return 0;
+    }
+
+    const bool needCache = g_printAbuseIpDbCsv || g_strict;
+    if (needCache) {
+        g_reportCache = std::make_unique<ReportCache>(g_cacheFile);
+        string cacheErr;
+        if (!g_reportCache->load(cacheErr)) {
+            cerr << "[WARNING] Failed to load cache: " << cacheErr << endl;
+            g_reportCache.reset();
+        }
     }
 
     // Check if output is desired to be in AbuseIPDB format
@@ -180,10 +207,21 @@ int main(int32_t argC, char** argV) {
 
         if (g_useDetailedInfo) {
             for (const auto& entry : detailedConnList) {
-                auto ip = entry.host;
-                const auto offset = ip.find("::ffff:");
-                if (offset != string::npos) {
-                    ip = ip.substr(offset + 7);
+                auto ip = normalizeIp(entry.host);
+
+                if (g_reportCache) {
+                    IpStatsSnapshot snap;
+                    snap.accepted = entry.acceptedConnections;
+                    snap.closed = entry.closedConnections;
+                    snap.secondsWasted = entry.totalSecondsWasted;
+                    snap.bytesSent = entry.totalBytesSent;
+
+                    if (g_reportCache->hasUnchanged(ip, snap)) {
+                        continue;
+                    }
+
+                    g_reportCache->update(ip, snap);
+                    g_cacheDirty = true;
                 }
 
                 int32_t totalConnections = entry.closedConnections;
@@ -208,11 +246,19 @@ int main(int32_t argC, char** argV) {
             }
         } else {
             for (const auto& entry : normalConnList) {
-                // strip ::ffff: from IP address
-                auto ip = entry.first;
-                auto offset = ip.find("::ffff:");
-                if (offset != string::npos) {
-                    ip = ip.substr(offset + 7);
+                auto ip = normalizeIp(entry.first);
+
+                if (g_reportCache) {
+                    IpStatsSnapshot snap;
+                    snap.accepted = entry.second.first;
+                    snap.closed = entry.second.second;
+
+                    if (g_reportCache->hasUnchanged(ip, snap)) {
+                        continue;
+                    }
+
+                    g_reportCache->update(ip, snap);
+                    g_cacheDirty = true;
                 }
 
                 int32_t closedConnections = entry.second.second;
@@ -233,6 +279,13 @@ int main(int32_t argC, char** argV) {
                     ), "\n"
                 );
             }
+        }
+    }
+
+    if (g_reportCache && g_cacheDirty) {
+        string cacheErr;
+        if (!g_reportCache->save(cacheErr)) {
+            cerr << "[WARNING] Failed to save cache: " << cacheErr << endl;
         }
     }
 
@@ -328,6 +381,17 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
     return connections;
 }
 
+string getHostFromIp(const string& ip) {
+    string host;
+    if (g_performDnsLookup) {
+        
+    } else {
+        host = ip;
+    }
+
+    return host;
+}
+
 /**
  * @brief Gets a list with detailled information about all the incoming connections to the server.
  * 
@@ -390,6 +454,12 @@ vector<ConnectionDetails> getDetailledConnections(const vector<string>& logConte
         element->closedConnections++;
         element->totalBytesSent += static_cast<size_t>(std::stoull(bytesToken));
         element->totalSecondsWasted += std::stold(timeToken);
+    }
+
+    if (g_sortIpStats) {
+        std::sort(returnVal.begin(), returnVal.end(), [](const ConnectionDetails& a, const ConnectionDetails& b) {
+            return a.acceptedConnections > b.acceptedConnections;
+        });
     }
 
     return returnVal;
@@ -488,6 +558,7 @@ void printIpStatsTableHeader() {
  * @param totalClosedConnections A reference to an unsigned int which will contain the total number of closed connections.
  */
 void printIpStats(const map<string, pair<uint32_t, uint32_t>>& connectionList, uint32_t& totalAcceptedConnections, uint32_t& totalClosedConnections) {
+
     for (const auto& connection : connectionList) {
         totalAcceptedConnections += connection.second.first;
         totalClosedConnections += connection.second.second;
@@ -495,10 +566,20 @@ void printIpStats(const map<string, pair<uint32_t, uint32_t>>& connectionList, u
         if (g_printIpStatistics) {
             string lastSpacer;
             string tmpString;
-            const auto offset = connection.first.find("::ffff:");
-            if (offset != string::npos) {
-                tmpString = connection.first.substr(offset + 7);
+
+            tmpString = normalizeIp(connection.first);
+
+            if (g_strict && g_reportCache) {
+                IpStatsSnapshot snap;
+                snap.accepted = connection.second.first;
+                snap.closed = connection.second.second;
+                if (g_reportCache->hasUnchanged(tmpString, snap)) {
+                    continue;
+                }
+                g_reportCache->update(tmpString, snap);
+                g_cacheDirty = true;
             }
+
             cout << "|" << (lastSpacer = getSpacerString(24, tmpString.size()))
                 << tmpString << string(24 - tmpString.size() - lastSpacer.size(), ' ') 
                 << "|";
@@ -532,10 +613,21 @@ void printDetailedIpStats(const vector<ConnectionDetails>& connectionList, uint3
         string tmpString{};
 
         string lastSpacer;
-        const auto offset = connection.host.find("::ffff:");
-        if (offset != string::npos) {
-            tmpString = connection.host.substr(offset + 7);
+        tmpString = normalizeIp(connection.host);
+
+        if (g_strict && g_reportCache) {
+            IpStatsSnapshot snap;
+            snap.accepted = connection.acceptedConnections;
+            snap.closed = connection.closedConnections;
+            snap.secondsWasted = connection.totalSecondsWasted;
+            snap.bytesSent = connection.totalBytesSent;
+            if (g_reportCache->hasUnchanged(tmpString, snap)) {
+                continue;
+            }
+            g_reportCache->update(tmpString, snap);
+            g_cacheDirty = true;
         }
+
         cout << "|" << (lastSpacer = getSpacerString(24, tmpString.size()))
              << tmpString << string(24 - tmpString.size() - lastSpacer.size(), ' ') 
              << "|";
@@ -611,9 +703,25 @@ int32_t parseArgs(const int32_t& argc, char** argv) {
             case 'd':
                 g_useDetailedInfo = true;
                 break;
+            case 't':
+                g_strict = true;
+                break;
+            case 'C':
+                if (optarg == nullptr) {
+                    cerr << "Missing path to cache file!" << endl;
+                    return 1;
+                }
+                g_cacheFile = optarg;
+                break;
             case 'v':
                 cout << getAppVersionText() << endl;
                 return 1;
+            case 'x':
+                g_sortIpStats = true;
+                break;
+            case 'D':
+                g_performDnsLookup = true;
+                break;
         }
     }
 
