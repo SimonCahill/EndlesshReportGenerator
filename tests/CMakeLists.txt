@@ -35,6 +35,7 @@ add_executable(
     endlessh-report-tests
     report_cache_test.cpp
     end_to_end_cache_test.cpp
+    main_extensions_test.cpp
 )
 
 target_link_libraries(
@@ -43,6 +44,7 @@ target_link_libraries(
         ${GTEST_MAIN_TARGET}
         ${GMOCK_TARGET}
         fmt
+    endlessh_core
 )
 
 target_include_directories(
@@ -50,6 +52,7 @@ target_include_directories(
     PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/submodules/date/include
 )
 
 # Allow end-to-end tests to locate the built binary deterministically.

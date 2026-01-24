@@ -31,6 +31,7 @@ using std::chrono::seconds;
 using std::chrono::system_clock;
 using std::function;
 using std::string;
+using std::string_view;
 using std::vector;
 
 /**
@@ -179,12 +180,8 @@ inline string getSpacerString(const uint32_t totalWidth, const uint32_t strLengt
  *
  * @return The trimmed string.
  */
-inline string trimStart(string nonTrimmed, const string& trimChar) {
-    //nonTrimmed.erase(nonTrimmed.begin(), find_if(nonTrimmed.begin(), nonTrimmed.end(), not1(ptr_fun<int32_t, int32_t>(isspace))));
-
-    function<bool(char)> shouldTrimChar = [=](char c) -> bool { return trimChar.size() == 0 ? isspace(c) : trimChar.find(c) != string::npos; };
-
-    nonTrimmed.erase(nonTrimmed.begin(), find_if(nonTrimmed.begin(), nonTrimmed.end(), not1(shouldTrimChar)));
+inline string& trimStart(string& nonTrimmed, const string_view trimChars) {
+    nonTrimmed.erase(nonTrimmed.begin(), std::find_if(nonTrimmed.begin(), nonTrimmed.end(), [&trimChars](int ch) { return trimChars.find(static_cast<char>(ch)) == string_view::npos; }));
 
     return nonTrimmed;
 }
@@ -196,11 +193,8 @@ inline string trimStart(string nonTrimmed, const string& trimChar) {
  *
  * @return The trimmed string.
  */
-inline string trimEnd(string nonTrimmed, const string& trimChar) {
-    // nonTrimmed.erase(find_if(nonTrimmed.rbegin(), nonTrimmed.rend(), not1(ptr_fun<int32_t, int32_t>(isspace))).base(), nonTrimmed.end());
-
-    function<bool(char)> shouldTrimChar = [=](char c) -> bool { return trimChar.size() == 0 ? isspace(c) : trimChar.find(c) != string::npos; };
-    nonTrimmed.erase(find_if(nonTrimmed.rbegin(), nonTrimmed.rend(), not1(shouldTrimChar)).base(), nonTrimmed.end());
+inline string& trimEnd(string& nonTrimmed, const string_view trimChars) {
+    nonTrimmed.erase(std::find_if(nonTrimmed.rbegin(), nonTrimmed.rend(), [&trimChars](int ch) { return trimChars.find(static_cast<char>(ch)) == string_view::npos; }).base(), nonTrimmed.end());
 
     return nonTrimmed;
 }
@@ -213,7 +207,7 @@ inline string trimEnd(string nonTrimmed, const string& trimChar) {
  *
  * @return The trimmed string.
  */
-inline string trim(const string& nonTrimmed, const string& trimChar) { return trimStart(trimEnd(nonTrimmed, trimChar), trimChar); }
+inline string& trim(string& nonTrimmed, const string_view trimChars) { return trimStart(trimEnd(nonTrimmed, trimChars), trimChars); }
 
 
 #endif // ENDLESSH_REPORT_INCLUDE_EXTENSIONS_HPP

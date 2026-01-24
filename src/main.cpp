@@ -33,6 +33,12 @@
 #include <regex.h>
 
 #include <fmt/format.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <cstring>
+#include "public_api.hpp"
 
 using fmt::format;
 
@@ -51,7 +57,7 @@ using std::vector;
 
 static bool    g_error{false}; //!< Whether or not a fatal error occurred
 static bool    g_disableAdvertisement{false}; //!< Whether or not to disable advertisement (default: false)
-static bool    g_performDnsLookup{false}; //!< Whether or not to perform DNS lookups (default: false)
+// g_performDnsLookup is defined in the `endlessh_core` library (src/core.cpp)
 static bool    g_printAbuseIpDbCsv{false}; //!< Whether or not to output AbuseIPDB-compatible CSV data (default: false; disables markdown-compatible stats)
 static bool    g_printIpStatistics{true}; //!< Whether or not to print IP stats (default: true)
 static bool    g_printConnectionStatistics{true}; //!< Whether or not to print connection stats (default: true)
@@ -64,13 +70,8 @@ static string  g_cacheFile{ReportCache::defaultCachePath()}; //!< Cache file loc
 static bool    g_cacheDirty{false}; //!< Whether or not the cache needs to be written
 static std::unique_ptr<ReportCache> g_reportCache{}; //!< Loaded cache (only when required)
 
-static string normalizeIp(string ip) {
-    const auto offset = ip.find("::ffff:");
-    if (offset != string::npos) {
-        ip = ip.substr(offset + 7);
-    }
-    return ip;
-}
+// normalizeIp implemented in src/core.cpp
+
 
 /**
  * @brief Contains information about a given connection.
@@ -94,7 +95,7 @@ struct ConnectionDetails {
 
 static int32_t                                 parseArgs(const int32_t&, char**); //!< Parses command-line arguments
 static map<string, pair<uint32_t, uint32_t>>   getConnections(const vector<string>&); //!< Gets the logged connections
-static string                                  getHostFromIp(const string&); //!< Gets the host from an IP address
+// getHostFromIp is declared in include/public_api.hpp
 static vector<ConnectionDetails>               getDetailledConnections(const vector<string>&); //!< Gets a detailled list of logged connections
 static vector<string>                          readEndlesshLog(); //!< Reads the log file into memory
 static void                                    printConnectionStatistics(const uint32_t uniqueIps, const uint32_t totalAccepted, const uint32_t totalClosed, const double totalTimeWasted, const uint32_t totalBytesSent); //!< Print connection statistics
@@ -381,16 +382,7 @@ map<string, pair<uint32_t, uint32_t>> getConnections(const vector<string>& logCo
     return connections;
 }
 
-string getHostFromIp(const string& ip) {
-    string host;
-    if (g_performDnsLookup) {
-        
-    } else {
-        host = ip;
-    }
-
-    return host;
-}
+// getHostFromIp implemented in src/core.cpp
 
 /**
  * @brief Gets a list with detailled information about all the incoming connections to the server.
