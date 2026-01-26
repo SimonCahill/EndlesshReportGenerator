@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(endlessh-report VERSION 1.2.3 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
+project(endlessh-report VERSION 1.3.0 LANGUAGES CXX DESCRIPTION "A simple report generator for endlessh tarpits.")
 set(PROJECT_LONG_NAME "Endlessh Report Generator")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+option(ENABLE_COVERAGE "Enable compilation flags for gcov coverage" ON)
+
+include(CTest)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/version.hpp)
 
@@ -11,6 +15,7 @@ add_compile_options(
     -Wpedantic
     -Werror
     -Wall
+    -Wno-unused-function
 )
 
 include_directories(
@@ -26,8 +31,14 @@ if (DEFINED endlesshreport_DEBUG OR CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
     add_compile_options(
         -O2
-        -s
     )
+endif()
+
+if (ENABLE_COVERAGE)
+    message(STATUS "Building with coverage support (--coverage)")
+    add_compile_options(--coverage -O0 -g)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
 endif()
 
 ###
@@ -42,20 +53,23 @@ execute_process(
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/date)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/submodules/fmt)
 
-file(GLOB_RECURSE FILES FOLLOW_SYMLINKS ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+add_library(endlessh_core STATIC src/core.cpp)
 
-add_executable(
-    ${PROJECT_NAME}
-
-    ${FILES}
-)
+add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_link_libraries(
     ${PROJECT_NAME}
-
-    date
-    fmt
+    PRIVATE
+        endlessh_core
+        date
+        fmt
 )
+
+target_link_libraries(endlessh_core PRIVATE fmt date)
+
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
 
 ###
 # Docs target
@@ -92,3 +106,10 @@ set(CPACK_PACKAGE_CONTACT "Simon Cahill <simon@simonc.eu>")
 set(CPACK_PACKAGE_VENDOR "Simon Cahill")
 set(CPACK_GENERATOR DEB)
 include(CPack)
+
+# Coverage target that runs the coverage helper script
+add_custom_target(coverage
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/coverage.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Run tests and generate coverage report (requires lcov/genhtml)"
+)

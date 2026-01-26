@@ -77,9 +77,13 @@ Switches:
     --detailed,     -d      Provide detailed information
     --help,         -h      Show this text and exit
     --version,      -v      Display version information and exit
+    --sort,         -x      Sort IP statistics
+    --dns-lookup,   -D      Perform DNS lookups on IP addresses
+    --strict,       -t      Skip IPs whose cached stats haven't changed
 
 Arguments:
     --syslog [f],   -S[f]   Override syslog/endlessh log location
+    --cache-file[f],-C[f]   Override persistent cache file location
 ```
 
 ## Output

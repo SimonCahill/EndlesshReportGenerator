@@ -30,7 +30,7 @@ using std::string_view;
  * 
  * @return constexpr string_view The arg string as required for @see getopt_long
  */
-constexpr string_view   getAppArgs() { return R"(icsandhvS:)"; }
+constexpr string_view   getAppArgs() { return R"(icsandhtvS:xDC:)"; }
 
 /**
  * @brief Gets the application's command-line options for @see getopt_long.
@@ -44,9 +44,14 @@ const option*           getAppOptions() {
         { "stdin",          no_argument,        nullptr,    's' },
         { "abuse-ipdb",     no_argument,        nullptr,    'a' },
         { "detailed",       no_argument,        nullptr,    'd' },
+        { "strict",         no_argument,        nullptr,    't' },
+        { "cache-file",     required_argument,  nullptr,    'C' },
         { "help",           no_argument,        nullptr,    'h' },
         { "syslog",         required_argument,  nullptr,    'S' },
         { "version",        no_argument,        nullptr,    'v' },
+        { "sort",           no_argument,        nullptr,    'x' },
+        { "no-ad",          no_argument,        nullptr,    'n' },
+        { "dns-lookup",     no_argument,        nullptr,    'D' },
         { nullptr,          no_argument,        nullptr,     0  }
     };
 
@@ -77,14 +82,18 @@ Switches:
     --abuse-ipdb,   -a      Enable AbuseIPDB-compatible CSV output
     --no-ad,        -n      No advertising please!
     --detailed,     -d      Provide detailed information
+    --strict,       -t      Skip IPs whose cached stats haven't changed
     --help,         -h      Show this text and exit
     --version,      -v      Display version information and exit
+    --sort,         -x      Sort IP statistics
+    --dns-lookup,   -D      Perform DNS lookups on IP addresses
 
 Arguments:
     --syslog [f],   -S[f]   Override syslog/endlessh log location
+    --cache-file[f],-C[f]   Override persistent cache file location
 )";
 
-    return fmt::format(HELP_TEXT_FMT, binName, getApplicationVersion(), getProjectDescription());
+    return fmt::format(fmt::runtime(HELP_TEXT_FMT), binName, getApplicationVersion(), getProjectDescription());
 }
 
 /**
