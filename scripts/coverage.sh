@@ -37,7 +37,7 @@ pushd "$BUILD_DIR" >/dev/null
 find . -name '*.gcda' -print0 | xargs -0 -n1 dirname | sort -u | while read -r dir; do
   echo "Processing $dir"
   # run gcov for all source files in the directory
-  (cd "$dir" && for f in *.o ../src/*.cpp ../src/*.c 2>/dev/null; do true; done)
+  (cd "$dir" && for f in $(find . -name '*.cpp' -o -name '*.c' 2>/dev/null) ; do true; done)
 done
 echo "gcov fallback cannot produce a nice HTML report here. Install lcov for best results." >&2
 popd >/dev/null
